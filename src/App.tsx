@@ -5,7 +5,7 @@ import "./App.css";
 import { useStateAsync } from "./useStateAsync";
 
 // SAMPLE use axios or something
-const fetcher = <T,>(...args: Parameters<typeof fetch>) => fetch(...args).then<T>(res => ({} as T));
+const fetcher = <T,>(...args: Parameters<typeof fetch>) => fetch(...args).then<T>(_res => ({} as T));
 
 // SAMPLE
 type Customer = {};
