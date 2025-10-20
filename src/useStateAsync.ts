@@ -17,16 +17,18 @@ export function useStateAsync<T>(fnAsync: (() => Promise<T>) | undefined | null 
 
   // manaul refresh, always happens
   tuple[REFRESH] = useCallback<RefreshFn<T>>(() => {
-    return fnAsync
-      ? fnAsync()
-          .then<ReturnTupleType<T>>(data => [data, false, undefined, tuple[REFRESH], tuple[PROMISE]])
-          .catch<ReturnTupleType<T>>((err: unknown) => [undefined, false, err, tuple[REFRESH], tuple[PROMISE]])
-          .then(tuple => {
-            setTuple(tuple);
-            console.log("RETURNING");
-            return tuple;
-          })
-      : tuple[PROMISE];
+    console.log("CALLING...");
+    if (fnAsync) {
+      tuple[PROMISE] = fnAsync()
+        .then<ReturnTupleType<T>>(data => [data, false, undefined, tuple[REFRESH], tuple[PROMISE]])
+        .catch<ReturnTupleType<T>>((err: unknown) => [undefined, false, err, tuple[REFRESH], tuple[PROMISE]])
+        .then(tuple => {
+          setTuple(tuple);
+          console.log("RETURNING");
+          return tuple;
+        });
+    }
+    return tuple[PROMISE];
   }, dependencies);
 
   // conditional refresh, conditional on dependecies automatic change & not already emitted fetch
@@ -38,11 +40,9 @@ export function useStateAsync<T>(fnAsync: (() => Promise<T>) | undefined | null 
       args.current.length != dependencies.length || // if the arrays differ in size or shallow contents, call it
       args.current.some((arg, i) => !Object.is(arg, dependencies[i]))
     ) {
-      console.log("CALLING...");
       args.current = dependencies;
       tuple[REFRESH]();
     }
-    //return tuple[PROMISE];
   }, dependencies);
 
   return tuple;
@@ -55,5 +55,5 @@ function constructEmpty<T>(initialValue: T | undefined = undefined): ReturnTuple
   const tuple: ReturnTupleType<T> = [initialValue, false, undefined, undefined as never, undefined as never];
   tuple[PROMISE] = Promise.resolve(tuple);
   tuple[REFRESH] = () => tuple[PROMISE];
-  return tuple satisfies ReturnTupleType<T>;
+  return tuple;
 }
