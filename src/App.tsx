@@ -1,8 +1,8 @@
 import { startTransition, useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
 import "./App.css";
+import reactLogo from "./assets/react.svg";
 import { useStateAsync } from "./useStateAsync";
+import viteLogo from "/vite.svg";
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
