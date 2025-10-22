@@ -20,10 +20,7 @@ export function App({ initialCount = 1 }: AppProps) {
 
   const [payload1, loading1, error1, refresh1] = useStateAsync(() => fetcher<Customer>(`/customers/${count}`), [count]);
   const [payload2, loading2, error2, refresh2] = useStateAsync(enabled2 && (() => fetcher<Order>(`/orders/${count}`)), [count]);
-  const [payload3, loading3, error3, refresh3] = useStateAsync(
-    [enabled3 && (() => getInvoice(count)), { count: "bar" }, true, "Cannot use Initial Count"],
-    [count]
-  );
+  const [payload3, loading3, error3, refresh3] = useStateAsync([enabled3 && getInvoice, { count: "bar" }, true, "Cannot use Initial Count"], [count]);
   const [payload4, loading4, error4, refresh4] = useStateAsync<Order>(
     enabled4 &&
       (old => {
@@ -33,8 +30,8 @@ export function App({ initialCount = 1 }: AppProps) {
     [count]
   );
 
-  // // typical usage
-  // const [invoice, loadingInvoice, invoiceError] = useStateAsync(() => getInvoice(count), [count]);
+  // typical usage
+  const [invoice, loadingInvoice, invoiceError] = useStateAsync(getInvoice, [count, initialCount]);
 
   const [cls, setCls] = useState("read-the-docs");
 
