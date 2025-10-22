@@ -1,40 +1,30 @@
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useState } from "react";
 import "./App.css";
-import { useStateAsync } from "./useStateAsync";
+import { useStateAsync } from "./hooks/useStateAsync";
+import type { Customer, Invoice, Order } from "./interfaces";
+import { fetcher } from "./utils/fetcher";
 import reactLogo from "/assets/react.svg";
 import viteLogo from "/assets/vite.svg";
 
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+export interface AppProps {
+  initialCount?: number;
+}
 
-// SAMPLE use axios or something
-const fetcher = <T,>(...args: Parameters<typeof fetch>) =>
-  fetch(...args)
-    .then(() => wait(Math.random() * 2000))
-    .then(() => {
-      if (Math.random() < 0.2) throw Error("HTTP 500");
-      return [];
-    })
-    .then<T>(() => new Date().toLocaleTimeString() as T);
-
-// SAMPLE
-type Customer = {};
-type Order = {};
-type Invoice = {};
-
-export function App() {
-  const [count, setCount] = useState(1);
-  const [payload, loading, error, refresh, promise] = useStateAsync(() => fetcher<Customer>(`/customers/${count}`), [count]);
-
-  useEffect(() => {
-    promise.then(x => console.log("chained off of promise", x));
-    return () => console.log("Somehow un-chain");
-  }, [promise]);
-
+export function App({ initialCount = 1 }: AppProps) {
+  const [count, setCount] = useState(initialCount);
+  const [payload, loading, error, refresh] = useStateAsync(() => fetcher<Customer>(`/customers/${count}`), [count]);
   const [payload2, loading2, error2, refresh2] = useStateAsync(count % 3 && (() => fetcher<Order>(`/orders/${count}`)), [count]);
   const [payload3, loading3, error3, refresh3] = useStateAsync(
     [count && (() => fetcher<Invoice>(`/invoices/${count}`).then(_ => ({ count: count.toString() }))), { count: "bar" }, false],
     [count]
   );
+  // const [payload4, loading4, error4, refresh4] = useStateAsync(
+  //   old => {
+  //     console.log("old", old);
+  //     return fetcher<Order>(`/summary/${count}`);
+  //   },
+  //   [count]
+  // );
 
   const [cls, setCls] = useState("read-the-docs");
 
