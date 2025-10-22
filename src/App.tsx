@@ -1,8 +1,8 @@
 import { startTransition, useEffect, useState } from "react";
 import "./App.css";
-import reactLogo from "./assets/react.svg";
 import { useStateAsync } from "./useStateAsync";
-import viteLogo from "/vite.svg";
+import reactLogo from "/assets/react.svg";
+import viteLogo from "/assets/vite.svg";
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -10,6 +10,10 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const fetcher = <T,>(...args: Parameters<typeof fetch>) =>
   fetch(...args)
     .then(() => wait(Math.random() * 2000))
+    .then(() => {
+      if (Math.random() < 0.2) throw Error("HTTP 500");
+      return [];
+    })
     .then<T>(() => new Date().toLocaleTimeString() as T);
 
 // SAMPLE
@@ -54,19 +58,26 @@ export function App() {
       <p className={cls} onClick={() => setCls(cls ? "" : "read-the-docs")}>
         Click on the Vite and React logos to learn more
       </p>
-      {loading && <div>Loading...</div>}
-      {error && <div className="err">Error: {JSON.stringify(error)}</div>}
-      {payload && <div>Payload: {JSON.stringify(payload)}</div>}
+
+      <div>
+        <img src={reactLogo} className="spin" alt="Loading..." width={16} style={{ visibility: loading ? "visible" : "hidden" }} />
+        {!!error && <span className="err">Error: {JSON.stringify(error)}</span>}
+        {payload && <span>Payload: {JSON.stringify(payload)}</span>}
+      </div>
       <button onClick={refresh}>refresh</button>
 
-      {loading2 && <div>2Loading...</div>}
-      {error2 && <div className="err">2Error: {JSON.stringify(error2)}</div>}
-      {payload2 && <div>2Payload: {JSON.stringify(payload2)}</div>}
+      <div>
+        <img src={reactLogo} className="spin" alt="Loading..." width={16} style={{ visibility: loading2 ? "visible" : "hidden" }} />
+        {!!error2 && <span className="err">2Error: {JSON.stringify(error2)}</span>}
+        {payload2 && <span>2Payload: {JSON.stringify(payload2)}</span>}
+      </div>
       <button onClick={refresh2}>2refresh</button>
 
-      {loading3 && <div>3Loading...</div>}
-      {error3 && <div className="err">3Error: {JSON.stringify(error3)}</div>}
-      {payload3 && <div>3Payload: {JSON.stringify(payload3)}</div>}
+      <div>
+        <img src={reactLogo} className="spin" alt="Loading..." width={16} style={{ visibility: loading3 ? "visible" : "hidden" }} />
+        {!!error3 && <span className="err">3Error: {JSON.stringify(error3)}</span>}
+        {payload3 && <span>3Payload: {JSON.stringify(payload3)}</span>}
+      </div>
       <button onClick={refresh3}>3refresh</button>
     </>
   );
