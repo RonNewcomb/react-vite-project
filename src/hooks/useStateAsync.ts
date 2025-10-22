@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 export type UseStateAsyncRefreshFn<T> = () => Promise<UseStateAsyncReturnTuple<T>>;
 export type UseStateAsyncReturnTuple<T> = [T | undefined, boolean, unknown, UseStateAsyncRefreshFn<T>, Promise<UseStateAsyncReturnTuple<T>>];
-export type UseStateAsyncInputFn<T> = (() => Promise<T>) | undefined | null | false | 0 | "";
+export type UseStateAsyncInputFn<T> = ((oldTuple: UseStateAsyncReturnTuple<T>) => Promise<T>) | undefined | null | false | 0 | "";
 export type UseStateAsyncInputTuple<T> = [UseStateAsyncInputFn<T>, T?, boolean?, unknown?];
 
 // const PAYLOAD = 0;
@@ -38,7 +38,7 @@ export function useStateAsync<T>(main: UseStateAsyncInputFn<T> | UseStateAsyncIn
     const myInstance = staleDataCounter.current;
     console.log("CALLING #", myInstance);
 
-    const promise = fnAsync()
+    const promise = fnAsync(tuple)
       .then<UseStateAsyncReturnTuple<T>>(data => [data, false, undefined, tuple[REFRESH], tuple[PROMISE]])
       .catch<UseStateAsyncReturnTuple<T>>((err: unknown) => [undefined, false, err, tuple[REFRESH], tuple[PROMISE]])
       .then(newTuple => {
