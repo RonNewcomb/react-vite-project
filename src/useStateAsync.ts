@@ -24,24 +24,34 @@ const PROMISE = 4;
  * @returns a tuple holding the resolved data, isLoading, any error, an imperative refresh function, the promise used
  */
 export function useStateAsync<T>(main: UseStateAsyncInputFn<T> | UseStateAsyncInputTuple<T>, depArray: unknown[]): UseStateAsyncReturnTuple<T> {
-  console.log("Re-renderin useStateAsync", depArray);
+  // console.log("Re-rendering useStateAsync", depArray);
   const [fnAsync, initialValue, initialLoading, initialError] = Array.isArray(main) ? main : [main];
   const [tuple, setTuple] = useState<UseStateAsyncReturnTuple<T>>(() => constructEmpty(initialValue, initialLoading, initialError));
 
-  // manaul refresh, always happens
+  // for when the 2nd fetch returns before the 1st fetch returns
+  const staleDataCounter = useRef(1);
+
+  // manaul refresh, always happens, can be imperatively invoked by user to force a refresh
   tuple[REFRESH] = useCallback<UseStateAsyncRefreshFn<T>>(() => {
-    console.log("CALLING...");
-    if (fnAsync) {
-      const promise = fnAsync()
-        .then<UseStateAsyncReturnTuple<T>>(data => [data, false, undefined, tuple[REFRESH], tuple[PROMISE]])
-        .catch<UseStateAsyncReturnTuple<T>>((err: unknown) => [undefined, false, err, tuple[REFRESH], tuple[PROMISE]])
-        .then(tuple => {
-          setTuple(tuple);
-          console.log("RETURNING", tuple);
-          return tuple;
-        });
-      setTuple(([v, _, e, f]) => [v, true, e, f, promise]);
-    }
+    if (!fnAsync) return tuple[PROMISE]; // no function, nothing can change.
+    staleDataCounter.current++;
+    const myInstance = staleDataCounter.current;
+    console.log("CALLING #", myInstance);
+
+    const promise = fnAsync()
+      .then<UseStateAsyncReturnTuple<T>>(data => [data, false, undefined, tuple[REFRESH], tuple[PROMISE]])
+      .catch<UseStateAsyncReturnTuple<T>>((err: unknown) => [undefined, false, err, tuple[REFRESH], tuple[PROMISE]])
+      .then(newTuple => {
+        if (myInstance !== staleDataCounter.current) {
+          console.log("STALE DATA", myInstance, staleDataCounter.current);
+          return tuple; // old tuple is correct? better than exception since why catch it.
+        } else {
+          console.log("RETURNING", newTuple);
+          setTuple(newTuple);
+          return newTuple;
+        }
+      });
+    setTuple(([v, _, e, f]) => [v, true, e, f, promise]); // isLoading = true, fresh promise made on the line above, previous data/error preserved
     return tuple[PROMISE];
   }, depArray);
 

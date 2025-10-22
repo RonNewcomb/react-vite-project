@@ -4,8 +4,13 @@ import viteLogo from "/vite.svg";
 import "./App.css";
 import { useStateAsync } from "./useStateAsync";
 
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 // SAMPLE use axios or something
-const fetcher = <T,>(...args: Parameters<typeof fetch>) => fetch(...args).then<T>(_res => ({} as T));
+const fetcher = <T,>(...args: Parameters<typeof fetch>) =>
+  fetch(...args)
+    .then(() => wait(Math.random() * 2000))
+    .then<T>(() => new Date().toLocaleTimeString() as T);
 
 // SAMPLE
 type Customer = {};
@@ -13,7 +18,7 @@ type Order = {};
 type Invoice = {};
 
 export function App() {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(1);
   const [payload, loading, error, refresh, promise] = useStateAsync(() => fetcher<Customer>(`/customers/${count}`), [count]);
 
   useEffect(() => {
