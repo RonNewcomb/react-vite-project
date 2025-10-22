@@ -13,13 +13,14 @@ export interface AppProps {
 
 export function App({ initialCount = 1 }: AppProps) {
   const [count, setCount] = useState(initialCount);
+  const id = count;
 
   const enabled2 = count % 3;
   const enabled3 = count != initialCount;
   const enabled4 = count % 4;
 
-  const [payload1, loading1, error1, refresh1] = useStateAsync(() => fetcher<Customer>(`/customers/${count}`), [count]);
-  const [payload2, loading2, error2, refresh2] = useStateAsync(enabled2 && (() => fetcher<Order>(`/orders/${count}`)), [count]);
+  const [payload1, loading1, error1, refresh1] = useStateAsync(() => fetcher<Customer>(`/customers/${id}`), [id]);
+  const [payload2, loading2, error2, refresh2] = useStateAsync(enabled2 && (() => fetcher<Order>(`/orders/${id}`)), [id]);
   const [payload3, loading3, error3, refresh3] = useStateAsync([enabled3 && getInvoice, { count: "bar" }, true, "Cannot use Initial Count"], [count]);
   const [payload4, loading4, error4, refresh4] = useStateAsync<Order>(
     enabled4 &&
@@ -31,7 +32,7 @@ export function App({ initialCount = 1 }: AppProps) {
   );
 
   // typical usage
-  const [invoice, loadingInvoice, invoiceError] = useStateAsync(getInvoice, [count, initialCount]);
+  const [invoice, loadingInvoice, invoiceError] = useStateAsync(getInvoice, [id]);
 
   const [cls, setCls] = useState("read-the-docs");
 
