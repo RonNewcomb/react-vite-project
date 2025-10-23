@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 
-export type UseStateAsyncRefreshFn<T> = () => Promise<UseStateAsyncReturnTuple<T>>;
+export type UseStateAsyncRefreshFn<T> = (silently?: "silently" | {}) => Promise<UseStateAsyncReturnTuple<T>>;
 export type UseStateAsyncReturnTuple<T> = [T | undefined, boolean, unknown, UseStateAsyncRefreshFn<T>, Promise<UseStateAsyncReturnTuple<T>>];
 export type UseStateAsyncInputFn<T> = ((...depArray: any[]) => Promise<T>) | undefined | null | false | 0 | "";
 export type UseStateAsyncInputTuple<T> = [UseStateAsyncInputFn<T>, T?, boolean?, unknown?];
@@ -24,7 +24,7 @@ const PROMISE = 4;
  * @returns a tuple holding the resolved data, isLoading, any error, an imperative refresh function, the promise used
  */
 export function useStateAsync<T>(main: UseStateAsyncInputFn<T> | UseStateAsyncInputTuple<T>, depArray: unknown[]): UseStateAsyncReturnTuple<T> {
-  // console.log("Re-rendering useStateAsync", depArray);
+  console.log("Render useStateAsync", depArray);
   const [fnAsync, initialValue, initialLoading, initialError] = Array.isArray(main) ? main : [main];
   const [tuple, setTuple] = useState<UseStateAsyncReturnTuple<T>>(() => constructEmpty(initialValue, initialLoading, initialError));
 
@@ -32,12 +32,13 @@ export function useStateAsync<T>(main: UseStateAsyncInputFn<T> | UseStateAsyncIn
   const staleDataCounter = useRef(1);
 
   // manaul refresh, always happens, can be imperatively invoked by user to force a refresh
-  tuple[REFRESH] = useCallback<UseStateAsyncRefreshFn<T>>(() => {
+  tuple[REFRESH] = useCallback<UseStateAsyncRefreshFn<T>>(silently => {
     if (!fnAsync) return tuple[PROMISE]; // no function, nothing can change.
     staleDataCounter.current++;
     const myInstance = staleDataCounter.current;
     console.log("CALLING #", myInstance);
 
+    // first set isLoading true, but i need this promise var first
     const promise = fnAsync(...depArray)
       .then<UseStateAsyncReturnTuple<T>>(data => [data, false, undefined, tuple[REFRESH], tuple[PROMISE]])
       .catch<UseStateAsyncReturnTuple<T>>((err: unknown) => [undefined, false, err, tuple[REFRESH], tuple[PROMISE]])
@@ -51,7 +52,9 @@ export function useStateAsync<T>(main: UseStateAsyncInputFn<T> | UseStateAsyncIn
           return newTuple;
         }
       });
-    setTuple(([v, _, e, f]) => [v, true, e, f, promise]); // isLoading = true, fresh promise made on the line above, previous data/error preserved
+    // set isLoading = true, fresh promise made on the line above, previous data/error preserved
+    if (silently !== "silently") setTuple(([v, _, e, f]) => [v, true, e, f, promise]);
+    //else console.log("CALLING SILENTLY - no rerender until fetch returns");
     return tuple[PROMISE];
   }, depArray);
 

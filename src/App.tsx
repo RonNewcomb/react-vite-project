@@ -1,5 +1,6 @@
 import { startTransition, useState } from "react";
 import "./App.css";
+import { Child } from "./components/Child";
 import { useStateAsync } from "./hooks/useStateAsync";
 import type { Customer, Order } from "./interfaces";
 import { getInvoice } from "./models/Invoice";
@@ -12,6 +13,7 @@ export interface AppProps {
 }
 
 export function App({ initialCount = 1 }: AppProps) {
+  console.log("APP rerender");
   const [count, setCount] = useState(initialCount);
   const id = count;
 
@@ -32,7 +34,7 @@ export function App({ initialCount = 1 }: AppProps) {
   );
 
   // typical usage
-  const [invoice, loadingInvoice, invoiceError] = useStateAsync(getInvoice, [id]);
+  //const [invoice, loadingInvoice, invoiceError] = useStateAsync(getInvoice, [id]);
 
   const [cls, setCls] = useState("read-the-docs");
 
@@ -56,6 +58,8 @@ export function App({ initialCount = 1 }: AppProps) {
       <p className={cls} onClick={() => setCls(cls ? "" : "read-the-docs")}>
         Click on the Vite and React logos to learn more
       </p>
+
+      <Child id={4} />
 
       <div>
         <img src={reactLogo} className="spin" alt="Loading..." width={16} style={{ visibility: loading1 ? "visible" : "hidden" }} />
@@ -87,7 +91,7 @@ export function App({ initialCount = 1 }: AppProps) {
         {payload4 && <span>Payload4: {JSON.stringify(payload4)}</span>}
         {!!error4 && <span className="err">Error4: {JSON.stringify(error4)}</span>}
       </div>
-      <button onClick={refresh4} disabled={!enabled4}>
+      <button onClick={() => refresh4("silent")} disabled={!enabled4}>
         Refresh4
       </button>
     </>
