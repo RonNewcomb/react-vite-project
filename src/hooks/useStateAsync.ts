@@ -45,7 +45,7 @@ export function useStateAsync<T>(main: UseStateAsyncInputFn<T> | UseStateAsyncIn
       .then(newTuple => {
         if (myInstance !== staleDataCounter.current) {
           console.log("STALE DATA", myInstance, staleDataCounter.current);
-          return tuple; // old tuple is correct? better than exception since why catch it.
+          return tuple; // old tuple is newer; better than exception since why catch it.
         } else {
           console.log("RETURNING", newTuple);
           setTuple(newTuple);

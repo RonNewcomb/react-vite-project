@@ -16,3 +16,5 @@ createRoot(div).render(
     <App initialCount={5} />
   </StrictMode>
 );
+
+// createRoot(div).render(<App initialCount={5} />);
