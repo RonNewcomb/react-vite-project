@@ -1,9 +1,9 @@
-# useStateAsync
+# useAsync
 
-This contains a fantastic implementation of `useStateAsync` for data fetching!
+This contains a fantastic implementation of `useAsync` for data fetching!
 
 - One single, clean line:
-  `const [invoice, loading, error, refresh] = useStateAsync(getInvoice, [id]);`
+  `const [invoice, loading, error, refresh] = useAsync(getInvoice, [id]);`
 - No more `useEffect`!
 - Dependency array always! No more accidents!
 - Safe for `<StrictMode />`!
@@ -16,7 +16,7 @@ This contains a fantastic implementation of `useStateAsync` for data fetching!
 - Avoid re-renders with `refresh('silently')`! Skip the `isLoading=true` for background loading!
 - Automatically passes the hook's dependencies to your function!
 - Provide initial input values!
-- Skip fetches with easy conditionals! `useStateAsync(!paused && getNotifications, [userId])`
+- Skip fetches with easy conditionals! `useAsync(!paused && getNotifications, [userId])`
 - Less than 100 lines of code!
 - No external dependencies!
 
@@ -28,15 +28,15 @@ Returns a tuple for easy naming just like `useState`. No more rambling renames l
 `const { data: invoice, loading: invoiceLoading, error: invoiceError } = `
 with multiple line breaks.
 
-Your function is called with the depArray arguments. No need for wrappers like
-`useStateAsync(() => getOrders(id, userId), [id, userId])`
+Your function is called with the hooks dependency arguments. No need for extra function wrappers like
+`useAsync(() => getOrders(id, userId), [id, userId])`
 You just write
-`useStateAsync(getOrders, [id, userId])`
+`useAsync(getOrders, [id, userId])`
 
 Provide initial input values with an input tuple.
-`const [settings, loading] = useStateAsync([getSettings, { darkMode: 'system' }, false], [userId])`
+`const [settings, loading] = useAsync([getSettings, { darkMode: 'system' }, false], [userId])`
 
-Skip fetches with easy conditionals. `useStateAsync(!pause && getNotifications, [userId])`
+Skip fetches with easy conditionals. `useAsync(!pause && getNotifications, [userId])`
 
 ### React + TypeScript + Vite
 

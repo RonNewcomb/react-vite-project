@@ -1,10 +1,10 @@
-import { useStateAsync } from "../hooks/useStateAsync";
+import { useAsync } from "../hooks/useAsync";
 import { getInvoice } from "../models/Invoice";
 import reactLogo from "/assets/react.svg";
 
 export function Child({ id }: { id: number | string }) {
   console.log("CHILD", id);
-  const [invoice, loadingInvoice, invoiceError, refresh] = useStateAsync(getInvoice, [id]);
+  const [invoice, loadingInvoice, invoiceError, refresh] = useAsync(getInvoice, [id]);
   return (
     <div>
       <div>

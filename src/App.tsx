@@ -1,7 +1,7 @@
 import { startTransition, useState } from "react";
 import "./App.css";
 import { Child } from "./components/Child";
-import { useStateAsync } from "./hooks/useStateAsync";
+import { useAsync } from "./hooks/useAsync";
 import type { Customer, Order } from "./interfaces";
 import { getInvoice } from "./models/Invoice";
 import { fetcher } from "./utils/fetcher";
@@ -21,10 +21,10 @@ export function App({ initialCount = 1 }: AppProps) {
   const enabled3 = count != initialCount;
   const enabled4 = count % 4;
 
-  const [payload1, loading1, error1, refresh1] = useStateAsync(() => fetcher<Customer>(`/customers/${id}`), [id]);
-  const [payload2, loading2, error2, refresh2] = useStateAsync(enabled2 && (() => fetcher<Order>(`/orders/${id}`)), [id]);
-  const [payload3, loading3, error3, refresh3] = useStateAsync([enabled3 && getInvoice, { count: "bar" }, true, "Cannot use Initial Count"], [count]);
-  const [payload4, loading4, error4, refresh4] = useStateAsync<Order>(
+  const [payload1, loading1, error1, refresh1] = useAsync(() => fetcher<Customer>(`/customers/${id}`), [id]);
+  const [payload2, loading2, error2, refresh2] = useAsync(enabled2 && (() => fetcher<Order>(`/orders/${id}`)), [id]);
+  const [payload3, loading3, error3, refresh3] = useAsync([enabled3 && getInvoice, { count: "bar" }, true, "Cannot use Initial Count"], [count]);
+  const [payload4, loading4, error4, refresh4] = useAsync<Order>(
     enabled4 &&
       (old => {
         console.log("old", old, "but new ", count);
@@ -34,7 +34,7 @@ export function App({ initialCount = 1 }: AppProps) {
   );
 
   // typical usage
-  //const [invoice, loadingInvoice, invoiceError] = useStateAsync(getInvoice, [id]);
+  //const [invoice, loadingInvoice, invoiceError] = useAsync(getInvoice, [id]);
 
   const [cls, setCls] = useState("read-the-docs");
 
