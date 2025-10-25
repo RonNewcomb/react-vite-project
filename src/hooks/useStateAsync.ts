@@ -25,6 +25,7 @@ const PROMISE = 4;
  */
 export function useStateAsync<T>(main: UseStateAsyncInputFn<T> | UseStateAsyncInputTuple<T>, depArray: unknown[]): UseStateAsyncReturnTuple<T> {
   console.log("Render useStateAsync", depArray);
+  if (!Array.isArray(depArray)) throw Error("useStateAsync requires depArray");
   const [fnAsync, initialValue, initialLoading, initialError] = Array.isArray(main) ? main : [main];
   const [tuple, setTuple] = useState<UseStateAsyncReturnTuple<T>>(() => constructEmpty(initialValue, initialLoading, initialError));
 
