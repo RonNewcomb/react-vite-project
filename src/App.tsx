@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./App.css";
+import { RenamingForm } from "./components/RenamingForm";
 import { SmallForm } from "./components/SmallForm";
 import { modal, ModalProvider } from "./modals/ModalProvider";
 import { choiceModal } from "./modals/MultipleChoice";
@@ -15,10 +16,16 @@ export function App({ initialCount = 1 }: AppProps) {
   console.log("APP rerender");
   const [count, setCount] = useState(initialCount);
   const [cls, setCls] = useState("read-the-docs");
+  const [heading, setHeading] = useState("");
 
   const bigform = async () => {
     const result = await modal(X => <SmallForm onSubmit={X} />);
     console.log("Modal result", result);
+  };
+
+  const rename = async () => {
+    const newName = await modal<string>(X => <RenamingForm name={heading} onSubmit={X} />);
+    setHeading(newName);
   };
 
   return (
@@ -40,13 +47,14 @@ export function App({ initialCount = 1 }: AppProps) {
           </p>
         </div>
         <p className={cls} onClick={() => setCls(cls ? "" : "read-the-docs")}>
-          Click on the Vite and React logos to learn more
+          {heading || "Click on the Vite and React logos to learn more"}
         </p>
 
         <div>
           <button onClick={() => yesNoModal(<h2>Bananas?</h2>).then(console.log)}>Ask "Bananas?"</button>
           <button onClick={() => choiceModal(<h2>Fruit?</h2>, ["Apple", "Banana", "Peach", "Orange"]).then(console.log)}>Ask "Fruit?"</button>
           <button onClick={bigform}>ASK</button>
+          <button onClick={rename}>Rename {heading}</button>
         </div>
 
         <SmallForm onSubmit={console.warn} />

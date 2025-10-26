@@ -1,14 +1,28 @@
 import { ReactNode } from "react";
 import { modal } from "./ModalProvider";
 
-export interface Answer {
+/**
+ * Asks a multiple-choice question, returning the result.
+ * @param ask The question for the user as a string or some JSX.
+ * @param answers an array of possible answers, either either a string or a label + value object.
+ * @returns a promise of the string (value) chosen.
+ */
+export function choiceModal(ask: ReactNode, answers: Array<string | Answer>) {
+  return modal<string>(X => <MultipleChoice ask={ask} answers={answers} onSelect={X} />);
+}
+
+interface Answer {
   label: ReactNode;
   value: string;
 }
 
-export const choiceModal = (ask: ReactNode, answers: Array<string | Answer>) => modal<string>(X => <MultipleChoice ask={ask} answers={answers} onSelect={X} />);
+interface MultipleChoiceProps {
+  ask: ReactNode;
+  answers: Array<string | Answer>;
+  onSelect: (answer: string) => void;
+}
 
-function MultipleChoice({ ask, answers, onSelect }: { ask: ReactNode; answers: Array<string | Answer>; onSelect: (answer: string) => void }) {
+function MultipleChoice({ ask, answers, onSelect }: MultipleChoiceProps) {
   return (
     <div>
       <div>{ask}</div>

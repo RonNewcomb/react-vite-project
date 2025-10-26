@@ -1,4 +1,16 @@
-import { CSSProperties, DetailedHTMLProps, Dispatch, HTMLAttributes, JSX, PropsWithChildren, ReactNode, SetStateAction, useState } from "react";
+import {
+  CSSProperties,
+  DetailedHTMLProps,
+  Dispatch,
+  HTMLAttributes,
+  JSX,
+  PropsWithChildren,
+  ReactNode,
+  SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 export type CloseTheModalFn<T> = (returnValue: T) => void;
 
@@ -46,7 +58,7 @@ export const defaultModalStyle: CSSProperties = {
 
 export interface ModalProviderProps {
   /** without background color the modal will default to transparent backing */
-  backgroundColor: CSSProperties["backgroundColor"];
+  backgroundColor: CSSProperties["backgroundColor"] | "";
   /** style used on the modal itself. Accepts a function which gives the values it was going to use. */
   style?: CSSProperties | ((old: CSSProperties) => CSSProperties);
   /** css classes to place on the modal */
@@ -70,21 +82,32 @@ export function ModalProvider({ children, ...props }: PropsWithChildren<ModalPro
   );
 }
 
+const focusable = "input,select,textarea,button,a[href],[tabindex]:not([tabindex='-1'])";
+
 /**
  * split off from ModalProvider so when pop happens ModalProvider is not re-rendered, only this is
  */
-function ModalsList({ msDismissDelay, style, className, overlayClassName, overlayStyle, backgroundColor = "white" }: ModalProviderProps) {
+function ModalsList({ msDismissDelay, style, className, overlayClassName, overlayStyle, backgroundColor }: ModalProviderProps) {
   console.log("ModalList");
   const [modals, setModals] = useState<ReactNode[]>([]);
+
+  // settings
   setOpenModals = setModals;
   dismissalDelay = msDismissDelay || 0;
+
+  // CSS
   const userModalStyle = typeof style === "function" ? style(defaultModalStyle) : style;
   const userOverlayStyle = typeof overlayStyle === "function" ? overlayStyle(defaultOverlayStyle) : overlayStyle;
   const finalModalStyle = { ...defaultModalStyle, backgroundColor, ...(userModalStyle || {}) };
   const finalOverlayStyle = { ...defaultOverlayStyle, ...(userOverlayStyle || {}) };
+
+  // autofocus
+  const modalEl = useRef<HTMLElement>(null!);
+  useEffect(() => modalEl?.current?.querySelector<HTMLElement>(focusable)?.focus?.(), [modals.length]);
+
   return modals.map((m, i) => (
     <modal-overlay style={finalOverlayStyle} className={overlayClassName || ""} key={i}>
-      <the-modal style={finalModalStyle} className={className || ""}>
+      <the-modal style={finalModalStyle} className={className || ""} ref={modalEl}>
         {m}
       </the-modal>
     </modal-overlay>
