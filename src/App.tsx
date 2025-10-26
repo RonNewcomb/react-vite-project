@@ -1,18 +1,14 @@
-import { PropsWithChildren, useState } from "react";
+import { useState } from "react";
 import "./App.css";
 import { SmallForm } from "./components/SmallForm";
+import { modal, ModalProvider } from "./modals/ModalProvider";
 import { choiceModal } from "./modals/MultipleChoice";
-import { modal, ModalProvider } from "./modals/providerModals";
 import { yesNoModal } from "./modals/YesNo";
 import reactLogo from "/assets/react.svg";
 import viteLogo from "/assets/vite.svg";
 
 export interface AppProps {
   initialCount?: number;
-}
-
-function ModalWrapper({ children }: PropsWithChildren<{}>) {
-  return <div>{children}</div>;
 }
 
 export function App({ initialCount = 1 }: AppProps) {
@@ -26,8 +22,8 @@ export function App({ initialCount = 1 }: AppProps) {
   };
 
   return (
-    <ModalProvider modalComponent={ModalWrapper}>
-      <div className="centeredcolumn">
+    <ModalProvider backgroundColor="tan" style={{ padding: 16 }}>
+      <main className="centeredcolumn">
         <div>
           <a href="https://vite.dev" target="_blank">
             <img src={viteLogo} className="logo" alt="Vite logo" />
@@ -54,7 +50,7 @@ export function App({ initialCount = 1 }: AppProps) {
         </div>
 
         <SmallForm onSubmit={console.warn} />
-      </div>
+      </main>
     </ModalProvider>
   );
 }

@@ -1,23 +1,29 @@
-import { JSX } from "react";
-import { modal } from "./providerModals";
+import { ReactNode } from "react";
+import { modal } from "./ModalProvider";
 
-export const choiceModal = (ask: string | JSX.Element, answers: string[]) =>
-  modal<string>(close => (
-    <MultipleChoice answers={answers} onSelect={close}>
-      {ask}
-    </MultipleChoice>
-  ));
+export interface Answer {
+  label: ReactNode;
+  value: string;
+}
 
-function MultipleChoice({ children, answers, onSelect }: { children: any; answers: string[]; onSelect: (answer: string) => void }) {
+export const choiceModal = (ask: ReactNode, answers: Array<string | Answer>) => modal<string>(X => <MultipleChoice ask={ask} answers={answers} onSelect={X} />);
+
+function MultipleChoice({ ask, answers, onSelect }: { ask: ReactNode; answers: Array<string | Answer>; onSelect: (answer: string) => void }) {
   return (
     <div>
-      <div>{children}</div>
+      <div>{ask}</div>
       <div style={{ display: "flex", justifyContent: "center" }}>
-        {answers.map(c => (
-          <button key={c} onClick={() => onSelect(c)}>
-            {c}
-          </button>
-        ))}
+        {answers.map(c =>
+          typeof c === "string" ? (
+            <button key={c} onClick={() => onSelect(c)}>
+              {c}
+            </button>
+          ) : (
+            <button key={c.value} onClick={() => onSelect(c.value)}>
+              {c.label}
+            </button>
+          )
+        )}
       </div>
     </div>
   );
