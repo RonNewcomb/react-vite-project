@@ -3,6 +3,7 @@ import { CSSProperties, DetailedHTMLProps, Dispatch, HTMLAttributes, JSX, PropsW
 export type CloseTheModalFn<T> = (returnValue: T) => void;
 
 let setOpenModals: Dispatch<SetStateAction<ReactNode[]>> = () => [];
+let dismissalDelay = 0;
 
 /**
  * Usage:
@@ -15,8 +16,8 @@ export function modal<T>(renderProp: (X: CloseTheModalFn<T>) => JSX.Element): Pr
     setOpenModals(list => [
       ...list,
       renderProp(modalResult => {
-        setOpenModals(old => old.slice(0, old.length - 1));
         resolve(modalResult);
+        setTimeout(() => setOpenModals(old => old.slice(0, old.length - 1)), dismissalDelay);
       }),
     ]);
   });
@@ -54,6 +55,8 @@ export interface ModalProviderProps {
   overlayStyle?: CSSProperties | ((old: CSSProperties) => CSSProperties);
   /** css classes to place on the overlay */
   overlayClassName?: string;
+  /** milliseconds to wait until removing modal from DOM; allows exit animations to play out */
+  msDismissDelay?: number;
 }
 
 export function ModalProvider({ children, ...props }: PropsWithChildren<ModalProviderProps>) {
@@ -70,10 +73,11 @@ export function ModalProvider({ children, ...props }: PropsWithChildren<ModalPro
 /**
  * split off from ModalProvider so when pop happens ModalProvider is not re-rendered, only this is
  */
-function ModalsList({ style, className, overlayClassName, overlayStyle, backgroundColor = "white" }: ModalProviderProps) {
+function ModalsList({ msDismissDelay, style, className, overlayClassName, overlayStyle, backgroundColor = "white" }: ModalProviderProps) {
   console.log("ModalList");
   const [modals, setModals] = useState<ReactNode[]>([]);
   setOpenModals = setModals;
+  dismissalDelay = msDismissDelay || 0;
   const userModalStyle = typeof style === "function" ? style(defaultModalStyle) : style;
   const userOverlayStyle = typeof overlayStyle === "function" ? overlayStyle(defaultOverlayStyle) : overlayStyle;
   const finalModalStyle = { ...defaultModalStyle, backgroundColor, ...(userModalStyle || {}) };

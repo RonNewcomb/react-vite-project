@@ -22,7 +22,7 @@ export function App({ initialCount = 1 }: AppProps) {
   };
 
   return (
-    <ModalProvider backgroundColor="tan" style={{ padding: 16 }}>
+    <ModalProvider backgroundColor="tan" style={{ padding: 16 }} msDismissDelay={500}>
       <main className="centeredcolumn">
         <div>
           <a href="https://vite.dev" target="_blank">

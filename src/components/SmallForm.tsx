@@ -1,4 +1,4 @@
-import { FormEvent, PropsWithChildren } from "react";
+import { FormEvent, PropsWithChildren, useState } from "react";
 
 export interface BoiledFormElement {
   type: string;
@@ -29,16 +29,18 @@ function FlexForm({ children }: PropsWithChildren<unknown>) {
 }
 
 export function SmallForm({ onSubmit }: { onSubmit: (x: BoiledFormElement[]) => void }) {
+  const [nice, setNice] = useState<object>(undefined!);
   return (
     <form onSubmit={e => onSubmit(boilForm(e))}>
       <div>
         Name:
         <input name="name" />
       </div>
-      <div>
+      <FlexForm>
         Age:
-        <input name="age" type="number" />
-      </div>
+        <input name="age" type="number" onChange={setNice} />
+        <div style={{ opacity: nice ? 1 : 0 }}>Nice!</div>
+      </FlexForm>
       <div>
         <input name="if" type="checkbox" value="when" /> If?
       </div>
