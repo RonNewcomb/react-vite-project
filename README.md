@@ -1,6 +1,12 @@
 # Modal Popups from Async Functions
 
-Make any React component a modal! Call modals like ordinary async functions! Await the submit!
+- Make any React component a modal!
+- Call modals like ordinary async functions! Await the submit!
+- Autofocus!
+- Fully CSS customizable!
+- No dependencies!
+- Less than 150 lines of code!
+- Includes modal-on-modal action!
 
 ```typescript
 const modalResult = await modal<YourReturnType>(X => <YourComponent onClick={X} />);
@@ -79,13 +85,13 @@ The `overlayStyle` is the same as `style` but it is for the dimming effect of th
 
 The `overlayClassName` prop passes the classes onto the overlay. There are no pre-existing classes to clash with, but remember the default `overlayStyle` will override anything set by className.
 
-The `msDismissDelay` is the number of milliseconds to wait until removing modal from DOM. This allows any exit animations you've made time to play out. It doesn't make the async call wait, so the page underneath can get on with whatever it needs to do, but it could always add a wait itself if it wishes to make the user wait for animation.
+The `msDismissDelay` is the number of milliseconds to wait until removing the modal from the DOM. This gives any exit animations you've made time to play out. Nicely, it doesn't block the async call's return.
 
 ## Details
 
-The `<ModalProvider/>` only renders once. The individual modals also tend to render only when a modal is first started or just finished. You don't have to worry about entire app re-renders from popping modals.
+The `<ModalProvider/>` only renders once (assuming, of course, nothing upwind of it causes everything to do so). The individual modals also tend to render only when a modal is first started or just finished. You don't have to worry about entire app re-renders from popping modals.
 
-Autofocuses the first focusable element in the modal.
+It autofocuses the first focusable element in the modal.
 
 You can pop modals on top of modals if you want. Some may question your UX brilliance but they're just haters.
 
@@ -93,7 +99,7 @@ Check out the readable DOM!
 
 ## TODO
 
-- Focus management
+- Focus capture
 - ARIA screenreaders
 
 ## Examples
