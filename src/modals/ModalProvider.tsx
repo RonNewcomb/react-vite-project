@@ -15,13 +15,24 @@ import {
 export type CloseTheModalFn<T> = (returnValue: T) => void;
 
 let setOpenModals: Dispatch<SetStateAction<ReactNode[]>> = () => [];
+let modalRefs: HTMLElement[] = [];
 let dismissalDelay = 0;
+let exitCss = "";
 
 /**
- * Usage:
- * `const answer = await modal<YourReturnType>(closeModalFunction => \<YourComponent onClick={closeModalFunction} />);`
- * @param renderProp A function that creates JSX.Element using the X function passed into it
- * @returns A promise of T which was the value given to the X function
+ * Displays the given React component as a modal dialog.
+ *
+ * Example usage:
+ *
+ * `const answer = await modal<T>(X => <YourComponent onSubmit={X} />);`
+ *
+ * Choose one of your component's `onSomething` functions to send your result into our X function, which will resolve the promise and close the modal.
+ *
+ * Meaning, if your callback was named `onSubmit` and your component eventually calls `onSubmit(value)`, where `value` is of type `T`, then
+ * the value is threaded through our close-modal function `X` and lands in your variable `answer`.
+ *
+ * @param renderProp a react component, wrapped in the angle brackets, with at least one "on.." property that calls the X function.
+ * @returns A promise of T which will be the value given to the X function
  */
 export function modal<T>(renderProp: (X: CloseTheModalFn<T>) => JSX.Element): Promise<T> {
   return new Promise(resolve => {
@@ -30,14 +41,14 @@ export function modal<T>(renderProp: (X: CloseTheModalFn<T>) => JSX.Element): Pr
       renderProp(modalResult => {
         resolve(modalResult);
         setTimeout(() => setOpenModals(old => old.slice(0, old.length - 1)), dismissalDelay);
+        if (exitCss) modalRefs[modalRefs.length - 1]?.classList?.add(exitCss);
+        //htmlElement?.addEventListener("transitionend", () => htmlElement.remove(), { once: true });
       }),
     ]);
   });
 }
 
-/// default values, ok for user to mess with /////
-
-export const defaultOverlayStyle: CSSProperties = {
+const defaultOverlayStyle: CSSProperties = {
   position: "fixed",
   top: 0,
   left: 0,
@@ -47,12 +58,14 @@ export const defaultOverlayStyle: CSSProperties = {
   backgroundColor: "rgba(0,0,0,0.5)",
 };
 
-export const defaultModalStyle: CSSProperties = {
+const defaultModalStyle: CSSProperties = {
   position: "fixed",
   top: "50%",
   left: "50%",
-  transform: "translate(-50%, -50%)",
+  translate: "-50%",
 };
+
+const focusable = "input,select,textarea,button,a[href],[tabindex]:not([tabindex='-1'])";
 
 ///////////////////////////
 
@@ -69,6 +82,8 @@ export interface ModalProviderProps {
   overlayClassName?: string;
   /** milliseconds to wait until removing modal from DOM; allows exit animations to play out */
   msDismissDelay?: number;
+  /** CSS class to add to modal on dismissal */
+  exitClassName?: string;
 }
 
 export function ModalProvider({ children, ...props }: PropsWithChildren<ModalProviderProps>) {
@@ -82,29 +97,23 @@ export function ModalProvider({ children, ...props }: PropsWithChildren<ModalPro
   );
 }
 
-const focusable = "input,select,textarea,button,a[href],[tabindex]:not([tabindex='-1'])";
-
 /**
  * split off from ModalProvider so when pop happens ModalProvider is not re-rendered, only this is
  */
-function ModalsList({ msDismissDelay, style, className, overlayClassName, overlayStyle, backgroundColor }: ModalProviderProps) {
+function ModalsList({ msDismissDelay, style, className, overlayClassName, overlayStyle, backgroundColor, exitClassName }: ModalProviderProps) {
   console.log("ModalList");
   const [modals, setModals] = useState<ReactNode[]>([]);
+  const modalEls = useRef<HTMLElement[]>([]);
 
   // settings
   setOpenModals = setModals;
   dismissalDelay = msDismissDelay || 0;
-
-  // CSS
-  const userModalStyle = typeof style === "function" ? style(defaultModalStyle) : style;
-  const userOverlayStyle = typeof overlayStyle === "function" ? overlayStyle(defaultOverlayStyle) : overlayStyle;
-  const finalModalStyle = { ...defaultModalStyle, backgroundColor, ...(userModalStyle || {}) };
-  const finalOverlayStyle = { ...defaultOverlayStyle, ...(userOverlayStyle || {}) };
+  exitCss = exitClassName || "";
+  modalRefs = modalEls.current;
 
   // autofocus
-  const modalEl = useRef<HTMLElement>(null!);
   useEffect(() => {
-    const el = modalEl.current;
+    const el = modalEls.current[0];
     if (!el) return;
     el.querySelector<HTMLElement>(focusable)?.focus?.();
     const onFocus = (e: FocusEvent) => !el.contains(e.target as HTMLElement) && el.querySelector<HTMLElement>(focusable)?.focus?.();
@@ -112,9 +121,21 @@ function ModalsList({ msDismissDelay, style, className, overlayClassName, overla
     return () => document.body.removeEventListener("focusin", onFocus);
   }, [modals.length]);
 
+  // CSS
+  const userModalStyle = typeof style === "function" ? style(defaultModalStyle) : style;
+  const userOverlayStyle = typeof overlayStyle === "function" ? overlayStyle(defaultOverlayStyle) : overlayStyle;
+  const finalModalStyle = { ...defaultModalStyle, backgroundColor, ...(userModalStyle || {}) };
+  const finalOverlayStyle = { ...defaultOverlayStyle, ...(userOverlayStyle || {}) };
+
   return modals.map((m, i) => (
     <modal-overlay style={finalOverlayStyle} className={overlayClassName || ""} key={i}>
-      <the-modal style={finalModalStyle} className={className || ""} ref={modalEl}>
+      <the-modal
+        style={finalModalStyle}
+        className={className || ""}
+        ref={htmlElement => {
+          if (htmlElement) modalEls.current[i] = htmlElement;
+        }}
+      >
         {m}
       </the-modal>
     </modal-overlay>

@@ -1,4 +1,5 @@
 import { FormEventHandler, useState } from "react";
+import { yesNoModal } from "../modals/YesNo";
 
 interface RenamingFormProps {
   name: string;
@@ -9,8 +10,10 @@ export function RenamingForm({ name, onSubmit }: RenamingFormProps) {
   console.log("RenamingForm");
   const [newName, setNewName] = useState(name);
 
-  const handler: FormEventHandler<HTMLFormElement> = e => {
+  const handler: FormEventHandler<HTMLFormElement> = async e => {
     e.preventDefault();
+    const yes = await yesNoModal("Are you sure?");
+    if (!yes) return;
     onSubmit(newName);
   };
 
