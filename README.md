@@ -61,7 +61,7 @@ Wrap your app in the `<ModalProvider/>` component where the other Providers live
 <ThemeProvider>
   {theme => (
     <UserContextProvider>
-      <ModalProvider backgroundColor={theme.bg} style={{ padding: 16 }} msDismissDelay={250}>
+      <ModalProvider backgroundColor={theme.bg} style={{ padding: 16 }} msDismissDelay={250} exitClassName="modal-close">
         <AuthProvider>
           <App />
         </AuthProvider>
@@ -87,6 +87,8 @@ The `overlayClassName` prop passes the classes onto the overlay. There are no pr
 
 The `msDismissDelay` is the number of milliseconds to wait until removing the modal from the DOM. This gives any exit animations you've made time to play out. Nicely, it doesn't block the async call's return.
 
+The `exitClassName` works with `msDismissDelay`. It accepts a string, the css class name to place onto the modal when it is beginning dismissal.
+
 ## Details
 
 The `<ModalProvider/>` only renders once (assuming, of course, nothing upwind of it causes everything to do so). The individual modals also tend to render only when a modal is first started or just finished. You don't have to worry about entire app re-renders from popping modals.
@@ -99,7 +101,6 @@ Check out the readable DOM!
 
 ## TODO
 
-- Focus capture
 - ARIA screenreaders
 
 ## Examples
@@ -127,7 +128,7 @@ interface YesNoProps {
 
 export function YesNo({ question, onSelect }: YesNoProps) {
   return (
-    <div>
+    <div data-testid="YesNo">
       <div>{question}</div>
       <button onClick={() => onSelect(true)}>Yes</button>
       <button onClick={() => onSelect(false)}>No</button>
@@ -165,7 +166,7 @@ interface MultipleChoiceProps {
 
 function MultipleChoice({ ask, answers, onSelect }: MultipleChoiceProps) {
   return (
-    <div>
+    <div data-testid="MultipleChoice">
       <div>{ask}</div>
       <div style={{ display: "flex", justifyContent: "center" }}>
         {answers.map(c =>

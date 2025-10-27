@@ -24,7 +24,7 @@ interface MultipleChoiceProps {
 
 function MultipleChoice({ ask, answers, onSelect }: MultipleChoiceProps) {
   return (
-    <div>
+    <div data-testid="MultipleChoice">
       <div>{ask}</div>
       <div style={{ display: "flex", justifyContent: "center" }}>
         {answers.map(c =>

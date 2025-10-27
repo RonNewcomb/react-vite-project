@@ -1,16 +1,4 @@
-import {
-  CSSProperties,
-  DetailedHTMLProps,
-  Dispatch,
-  HTMLAttributes,
-  JSX,
-  PropsWithChildren,
-  ReactNode,
-  SetStateAction,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { CSSProperties, DetailedHTMLProps, Dispatch, HTMLAttributes, JSX, PropsWithChildren, ReactNode, SetStateAction, useEffect, useState } from "react";
 
 export type CloseTheModalFn<T> = (returnValue: T) => void;
 
@@ -18,35 +6,6 @@ let setOpenModals: Dispatch<SetStateAction<ReactNode[]>> = () => [];
 let modalRefs: HTMLElement[] = [];
 let dismissalDelay = 0;
 let exitCss = "";
-
-/**
- * Displays the given React component as a modal dialog.
- *
- * Example usage:
- *
- * `const answer = await modal<T>(X => <YourComponent onSubmit={X} />);`
- *
- * Choose one of your component's `onSomething` functions to send your result into our X function, which will resolve the promise and close the modal.
- *
- * Meaning, if your callback was named `onSubmit` and your component eventually calls `onSubmit(value)`, where `value` is of type `T`, then
- * the value is threaded through our close-modal function `X` and lands in your variable `answer`.
- *
- * @param renderProp a react component, wrapped in the angle brackets, with at least one "on.." property that calls the X function.
- * @returns A promise of T which will be the value given to the X function
- */
-export function modal<T>(renderProp: (X: CloseTheModalFn<T>) => JSX.Element): Promise<T> {
-  return new Promise(resolve => {
-    setOpenModals(list => [
-      ...list,
-      renderProp(modalResult => {
-        resolve(modalResult);
-        setTimeout(() => setOpenModals(old => old.slice(0, old.length - 1)), dismissalDelay);
-        if (exitCss) modalRefs[modalRefs.length - 1]?.classList?.add(exitCss);
-        //htmlElement?.addEventListener("transitionend", () => htmlElement.remove(), { once: true });
-      }),
-    ]);
-  });
-}
 
 const defaultOverlayStyle: CSSProperties = {
   position: "fixed",
@@ -86,11 +45,14 @@ export interface ModalProviderProps {
   exitClassName?: string;
 }
 
+/**
+ * Wrap your App in this provider for the modal() function to work.
+ * Uses a separate component to avoid re-rendering App.
+ */
 export function ModalProvider({ children, ...props }: PropsWithChildren<ModalProviderProps>) {
   console.log("ModalProvider");
   return (
     <modal-provider>
-      {/* DO NOT re-render children if at all possible */}
       {children}
       <ModalsList {...props} />
     </modal-provider>
@@ -101,25 +63,14 @@ export function ModalProvider({ children, ...props }: PropsWithChildren<ModalPro
  * split off from ModalProvider so when pop happens ModalProvider is not re-rendered, only this is
  */
 function ModalsList({ msDismissDelay, style, className, overlayClassName, overlayStyle, backgroundColor, exitClassName }: ModalProviderProps) {
-  console.log("ModalList");
+  console.log("ModalsList");
   const [modals, setModals] = useState<ReactNode[]>([]);
-  const modalEls = useRef<HTMLElement[]>([]);
 
-  // settings
   setOpenModals = setModals;
   dismissalDelay = msDismissDelay || 0;
   exitCss = exitClassName || "";
-  modalRefs = modalEls.current;
 
-  // autofocus
-  useEffect(() => {
-    const el = modalEls.current[0];
-    if (!el) return;
-    el.querySelector<HTMLElement>(focusable)?.focus?.();
-    const onFocus = (e: FocusEvent) => !el.contains(e.target as HTMLElement) && el.querySelector<HTMLElement>(focusable)?.focus?.();
-    document.body.addEventListener("focusin", onFocus);
-    return () => document.body.removeEventListener("focusin", onFocus);
-  }, [modals.length]);
+  useEffect(focusManagement, [modals.length]);
 
   // CSS
   const userModalStyle = typeof style === "function" ? style(defaultModalStyle) : style;
@@ -129,19 +80,70 @@ function ModalsList({ msDismissDelay, style, className, overlayClassName, overla
 
   return modals.map((m, i) => (
     <modal-overlay style={finalOverlayStyle} className={overlayClassName || ""} key={i}>
-      <the-modal
-        style={finalModalStyle}
-        className={className || ""}
-        ref={htmlElement => {
-          if (htmlElement) modalEls.current[i] = htmlElement;
-        }}
-      >
+      <the-modal style={finalModalStyle} className={className || ""} ref={captureRef(i)}>
         {m}
       </the-modal>
     </modal-overlay>
   ));
 }
 
+/**
+ * useEffect happens "after the return statement"
+ */
+function focusManagement() {
+  const el = modalRefs[modalRefs.length - 1];
+  if (!el) return;
+  el.querySelector<HTMLElement>(focusable)?.focus?.(); // autofocus 1st element
+  const onFocus = (e: FocusEvent) => !el.contains(e.target as HTMLElement) && el.querySelector<HTMLElement>(focusable)?.focus?.();
+  document.body.addEventListener("focusin", onFocus); // fence focus to modal
+  return () => document.body.removeEventListener("focusin", onFocus);
+}
+
+/**
+ * ref capture happens late like useEffect
+ * stable reference so ref={..} doesn't keep re-calling it
+ */
+function captureRef(i: number) {
+  return function (htmlElement: HTMLElement | null) {
+    if (htmlElement) {
+      modalRefs[i] = htmlElement;
+    }
+    return () => {
+      modalRefs.pop();
+    };
+  };
+}
+
+/**
+ * Displays the given React component as a modal dialog.
+ *
+ * Example usage:
+ *
+ * `const answer = await modal<T>(X => <YourComponent onSubmit={X} />);`
+ *
+ * Choose one of your component's `onSomething` functions to send your result into our X function, which will resolve the promise and close the modal.
+ *
+ * Meaning, if your callback was named `onSubmit` and your component eventually calls `onSubmit(value)`, where `value` is of type `T`, then
+ * the value is threaded through our close-modal function `X` and lands in your variable `answer`.
+ *
+ * @param renderProp a react component, wrapped in the angle brackets, with at least one "on.." property that calls the X function.
+ * @returns A promise of T which will be the value given to the X function
+ */
+export function modal<T>(renderProp: (X: CloseTheModalFn<T>) => JSX.Element): Promise<T> {
+  return new Promise(resolve => {
+    setOpenModals(list => [
+      ...list,
+      renderProp(modalResult => {
+        resolve(modalResult);
+        setTimeout(() => setOpenModals(old => old.slice(0, old.length - 1)), dismissalDelay);
+        if (exitCss) modalRefs[modalRefs.length - 1]?.classList?.add(exitCss);
+        //htmlElement?.addEventListener("transitionend", () => htmlElement.remove(), { once: true });
+      }),
+    ]);
+  });
+}
+
+// allow HTML5 custom elements above
 declare module "react/jsx-runtime" {
   namespace JSX {
     interface IntrinsicElements {

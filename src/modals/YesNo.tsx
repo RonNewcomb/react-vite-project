@@ -18,7 +18,7 @@ interface YesNoProps {
 
 export function YesNo({ question, onSelect }: YesNoProps) {
   return (
-    <div>
+    <div data-testid="YesNo">
       <div>{question}</div>
       <button onClick={() => onSelect(true)}>Yes</button>
       <button onClick={() => onSelect(false)}>No</button>
