@@ -103,7 +103,14 @@ function ModalsList({ msDismissDelay, style, className, overlayClassName, overla
 
   // autofocus
   const modalEl = useRef<HTMLElement>(null!);
-  useEffect(() => modalEl?.current?.querySelector<HTMLElement>(focusable)?.focus?.(), [modals.length]);
+  useEffect(() => {
+    const el = modalEl.current;
+    if (!el) return;
+    el.querySelector<HTMLElement>(focusable)?.focus?.();
+    const onFocus = (e: FocusEvent) => !el.contains(e.target as HTMLElement) && el.querySelector<HTMLElement>(focusable)?.focus?.();
+    document.body.addEventListener("focusin", onFocus);
+    return () => document.body.removeEventListener("focusin", onFocus);
+  }, [modals.length]);
 
   return modals.map((m, i) => (
     <modal-overlay style={finalOverlayStyle} className={overlayClassName || ""} key={i}>
