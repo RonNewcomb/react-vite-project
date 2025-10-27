@@ -1,10 +1,10 @@
 import { useState } from "react";
 import "./App.css";
+import { choiceModal } from "./components/MultipleChoice";
 import { RenamingForm } from "./components/RenamingForm";
 import { SmallForm } from "./components/SmallForm";
+import { yesNoModal } from "./components/YesNo";
 import { modal, ModalProvider } from "./modals/ModalProvider";
-import { choiceModal } from "./modals/MultipleChoice";
-import { yesNoModal } from "./modals/YesNo";
 import reactLogo from "/assets/react.svg";
 import viteLogo from "/assets/vite.svg";
 

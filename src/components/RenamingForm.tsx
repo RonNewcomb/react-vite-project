@@ -1,5 +1,5 @@
 import { FormEventHandler, useState } from "react";
-import { yesNoModal } from "../modals/YesNo";
+import { yesNoModal } from "./YesNo";
 
 interface RenamingFormProps {
   name: string;

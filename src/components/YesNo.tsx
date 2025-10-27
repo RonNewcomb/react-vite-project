@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { modal } from "./ModalProvider";
+import { modal } from "../modals/ModalProvider";
 
 /**
  * Asks a multiple-choice question, returning the result.
@@ -16,7 +16,7 @@ interface YesNoProps {
   onSelect: (returnValue: boolean) => void;
 }
 
-export function YesNo({ question, onSelect }: YesNoProps) {
+function YesNo({ question, onSelect }: YesNoProps) {
   return (
     <div data-testid="YesNo">
       <div>{question}</div>

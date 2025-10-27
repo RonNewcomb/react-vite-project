@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { modal } from "./ModalProvider";
+import { modal } from "../modals/ModalProvider";
 
 /**
  * Asks a multiple-choice question, returning the result.
