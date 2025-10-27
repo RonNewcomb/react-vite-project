@@ -119,21 +119,22 @@ function captureRef(i: number) {
  *
  * Example usage:
  *
- * `const answer = await modal<T>(X => <YourComponent onSubmit={X} />);`
+ * `const answer = await modal<T>(close => <YourComponent onSubmit={close} />);`
  *
- * Choose one of your component's `onSomething` functions to send your result into our X function, which will resolve the promise and close the modal.
+ * Choose one of your component's `onSomething` functions to send your result into the `close` function, which will resolve the promise and close the modal.
  *
  * Meaning, if your callback was named `onSubmit` and your component eventually calls `onSubmit(value)`, where `value` is of type `T`, then
- * the value is threaded through our close-modal function `X` and lands in your variable `answer`.
+ * the value is threaded through the close-modal function and lands in your variable `answer`.
  *
- * @param renderProp a react component, wrapped in the angle brackets, with at least one "on.." property that calls the X function.
- * @returns A promise of T which will be the value given to the X function
+ * @template T the type of `answer`; the type of the modal's result. This should NOT be a promise so remember to `await`.
+ * @param functionThatReturnsAComponent a function that accepts the close function and returns a react component that uses it.
+ * @returns A promise of T which will be the value given to the `close` function
  */
-export function modal<T>(renderProp: (X: CloseTheModalFn<T>) => JSX.Element): Promise<T> {
+export function modal<T>(functionThatReturnsAComponent: (close: CloseTheModalFn<T>) => JSX.Element): Promise<T> {
   return new Promise(resolve => {
     setOpenModals(list => [
       ...list,
-      renderProp(modalResult => {
+      functionThatReturnsAComponent(modalResult => {
         resolve(modalResult);
         setTimeout(() => setOpenModals(old => old.slice(0, old.length - 1)), dismissalDelay);
         if (exitCss) modalRefs[modalRefs.length - 1]?.classList?.add(exitCss);
