@@ -1,7 +1,7 @@
 import { ReactNode, useCallback, useMemo, useState, type JSX, type PropsWithChildren } from "react";
 
 export interface ReactComponent {
-  (): JSX.Element | Promise<JSX.Element>;
+  (props: any & object): JSX.Element | Promise<JSX.Element>;
 }
 
 export interface Route {
@@ -24,41 +24,55 @@ interface CleanRoute {
   component: ReactComponent;
 }
 
-export function Router({ routes, children }: PropsWithChildren<{ routes: Route[] }>) {
-  const [current, setCurrent] = useState(location.pathname);
-  const handler = useCallback((e: NavEvent) => setCurrent(e.to), []);
+const cleanPath = (path: string) => path.split("/").filter(x => !!x);
 
-  const rs = useMemo<CleanRoute[]>(() => {
+export function Router({ routes, children }: PropsWithChildren<{ routes: Route[] }>) {
+  const [current, setCurrent] = useState(() => cleanPath(location.pathname));
+  const handler = useCallback((ev: NavEvent) => setCurrent(cleanPath(ev.to)), []);
+
+  const cleanRoutes = useMemo<CleanRoute[]>(() => {
+    document.body.removeEventListener("nav-event", handler as any);
     document.body.addEventListener("nav-event", handler as any);
 
     return routes
-      .map(({ path, component }) => {
-        const cleanRoute: CleanRoute = {
-          path: new URL(path.replace(/\/\//g, "/"), "http://localhost").pathname.split("/").filter(x => !!x),
-          component,
-        };
-        return cleanRoute;
-      })
+      .map<CleanRoute>(({ path, component }) => ({
+        component,
+        path: cleanPath(new URL(path.replace(/\/\//g, "/"), "http://localhost").pathname),
+      }))
       .sort((a, b) => a.path.length - b.path.length); // shortest path first
   }, []);
 
-  console.log(
-    rs.map(r => r.path.join("/")),
-    current
-  );
+  // console.log(cleanRoutes.map(r => r.path.join("/")), current);
 
-  const here = current.split("/").filter(x => !!x);
-  const options: CleanRoute[] = rs.filter(r => here.length == r.path.length && here.every((h, i) => h == r.path[i]));
+  const options: CleanRoute[] = cleanRoutes
+    .filter(r => current.length == r.path.length)
+    .filter(r => current.every((h, i) => h == r.path[i] || r.path[i].startsWith(":")));
 
-  if (options.length !== 1) console.error((!options.length ? "No" : "Multiple") + " route definitions for /" + here.join("/"));
+  if (options.length !== 1) {
+    const num = options.length ? "Multiple" : "No";
+    const msg = "route definitions for /" + current.join("/");
+    console.error(num, msg);
+    options.map(o => console.error("#" + cleanRoutes.indexOf(o) + "  /" + o.path.join("/")));
+  }
 
-  const comp = options?.[0]?.component;
+  const chosenRoute = options?.[0];
+  const comp = chosenRoute?.component;
 
   const renderedNodeOrAPromise = useMemo(() => {
-    console.log("Calling Comp()");
+    //console.log("Calling Comp()");
     if (!comp) return undefined;
-    window.history.pushState("", "", current);
-    return comp();
+    window.history.pushState("", "", "/" + current.join("/"));
+
+    const props = current.reduce(
+      (sum, each, i) => {
+        const segment = chosenRoute.path[i];
+        const name = segment.startsWith(":") ? segment.slice(1) : undefined;
+        if (name) sum[name] = each;
+        return sum;
+      },
+      {} as Record<string, string | number>
+    );
+    return comp(props);
   }, [comp]);
 
   const [component, setComponent] = useState<ReactNode | null>(null);
@@ -66,18 +80,15 @@ export function Router({ routes, children }: PropsWithChildren<{ routes: Route[]
   const synchronousFallback = useMemo(() => {
     if (!renderedNodeOrAPromise) return component;
     if (!(renderedNodeOrAPromise instanceof Promise)) {
-      console.log("is component. setting and returning ");
+      //console.log("is component. setting and returning ");
       setComponent(renderedNodeOrAPromise); // unnecessary?
       return renderedNodeOrAPromise;
     }
-    console.log("Promise. returning Children and wait");
-    //setComponent(null);
-    renderedNodeOrAPromise.then(renNode => {
-      // TODO check to see if it's still current
-      setComponent(renNode);
-      console.log("Returned!");
-    });
-    return component;
+    //console.log("Promise. returning Children and wait");
+    setComponent(null);
+    renderedNodeOrAPromise.then(setComponent);
+    // return component; // if you want the previous screen to stay put
+    return children;
   }, [renderedNodeOrAPromise]);
 
   return component ?? synchronousFallback ?? children;
