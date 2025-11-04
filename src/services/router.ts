@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useMemo, useState, type JSX, type PropsWithChildren } from "react";
+import { useCallback, useMemo, useState, type JSX, type PropsWithChildren, type ReactNode } from "react";
 
 export interface ReactComponent {
   (props: any & object): JSX.Element | Promise<JSX.Element>;
@@ -9,7 +9,7 @@ export interface Route {
   component: ReactComponent;
 }
 
-class NavEvent extends Event {
+export class NavEvent extends Event {
   to: string = "";
 }
 
@@ -89,7 +89,7 @@ export function Router({ routes, children }: PropsWithChildren<{ routes: Route[]
     renderedNodeOrAPromise.then(setComponent);
     // return component; // if you want the previous screen to stay put
     return children;
-  }, [renderedNodeOrAPromise]);
+  }, [renderedNodeOrAPromise, component]);
 
   return component ?? synchronousFallback ?? children;
 }

@@ -25,10 +25,36 @@ const routes: Route[] = [
     },
   },
   { path: "/lazy", component: () => import("./components/D").then(({ D }) => <D />) },
-  { path: "lazy2", component: () => import("./components/D").then(module => module["D"]()) },
+  {
+    path: "lazy2",
+    component: () =>
+      import("./components/D").then(module => {
+        //console.log(module[Symbol.toStringTag], module[Symbol.toStringTag] === "Module");
+        return module["D"]();
+      }),
+  },
   { path: "parameters/:id", component: ({ id }) => <div>Params {id}</div> },
   // { path: "parameters/:id/:otherId", component: Params },
   { path: "parameters/:id/:otherId", component: props => <Params {...props} /> },
+
+  {
+    path: "customer",
+    component: () => (
+      <Router
+        routes={[
+          { path: "/", component: () => <A /> },
+          { path: ":id", component: ({ id }) => <div>Customer #{id}</div> },
+          {
+            path: "list",
+            component: async () => {
+              const x = await wait(2000);
+              return <C anything={x} />;
+            },
+          },
+        ]}
+      ></Router>
+    ),
+  },
 ];
 
 ///////////////
