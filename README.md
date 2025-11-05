@@ -48,3 +48,5 @@ Also, routes definition just being a key-value object was messier than expected 
 1. the router config is always partial; parts are lazy-loaded and added at runtime
 
 When the `goto` aims to a level deeper than the router config... there's another router?
+
+When gotoing a path with ?query params but the same path we're already on, do we still nav? I guess so....

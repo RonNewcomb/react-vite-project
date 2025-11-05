@@ -4,8 +4,9 @@ import { B } from "./components/B";
 import { C } from "./components/C";
 import { Loading } from "./components/Loading";
 import { Params } from "./components/Params";
+import { goto } from "./services/goto-url";
 import "./services/router";
-import { type Route, Router, goto } from "./services/router";
+import { type Route, Router } from "./services/router";
 import reactLogo from "/assets/react.svg";
 import viteLogo from "/assets/vite.svg";
 

@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState, type JSX, type PropsWithChildren, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, type JSX, type PropsWithChildren, type ReactNode } from "react";
+import { attach, detach, NavEvent, setBrowserUrl } from "./goto-url";
 
 export interface ReactComponent {
   (props: any & object): JSX.Element | Promise<JSX.Element>;
@@ -9,87 +10,74 @@ export interface Route {
   component: ReactComponent;
 }
 
-export class NavEvent extends Event {
-  to: string = "";
-}
-
-export async function goto(path: string) {
-  const ev = new NavEvent("nav-event");
-  ev.to = path;
-  document.body.dispatchEvent(ev);
-}
-
 interface CleanRoute {
   path: string[];
   component: ReactComponent;
 }
 
-const cleanPath = (path: string) => path.split("/").filter(x => !!x);
+// clean input
+const onlyTheCleanPath = (path: string) => new URL(path.replace(/\/\//g, "/"), "http://localhost").pathname.split("/").filter(x => !!x);
 
-export function Router({ routes, children }: PropsWithChildren<{ routes: Route[] }>) {
-  const [current, setCurrent] = useState(() => cleanPath(location.pathname));
-  const handler = useCallback((ev: NavEvent) => setCurrent(cleanPath(ev.to)), []);
+// clean user input
+const cleanTheRoutes = (routes: Route[]) =>
+  routes
+    .map<CleanRoute>(({ path, component }) => ({
+      component,
+      path: onlyTheCleanPath(path),
+    }))
+    .sort((a, b) => a.path.length - b.path.length); // shortest path first;
 
-  const cleanRoutes = useMemo<CleanRoute[]>(() => {
-    document.body.removeEventListener("nav-event", handler as any);
-    document.body.addEventListener("nav-event", handler as any);
+/**
+ * find matching component
+ */
+function findMatchingComponent(routes: CleanRoute[], path: string): JSX.Element | Promise<JSX.Element> | undefined {
+  const current = onlyTheCleanPath(path);
 
-    return routes
-      .map<CleanRoute>(({ path, component }) => ({
-        component,
-        path: cleanPath(new URL(path.replace(/\/\//g, "/"), "http://localhost").pathname),
-      }))
-      .sort((a, b) => a.path.length - b.path.length); // shortest path first
-  }, []);
-
-  // console.log(cleanRoutes.map(r => r.path.join("/")), current);
-
-  const options: CleanRoute[] = cleanRoutes
-    .filter(r => current.length == r.path.length)
-    .filter(r => current.every((h, i) => h == r.path[i] || r.path[i].startsWith(":")));
-
-  if (options.length !== 1) {
-    const num = options.length ? "Multiple" : "No";
+  const matchedRoutes = routes.filter(r => current.length == r.path.length).filter(r => current.every((h, i) => h == r.path[i] || r.path[i].startsWith(":")));
+  if (matchedRoutes.length !== 1) {
+    const num = matchedRoutes.length ? "Multiple" : "No";
     const msg = "route definitions for /" + current.join("/");
     console.error(num, msg);
-    options.map(o => console.error("#" + cleanRoutes.indexOf(o) + "  /" + o.path.join("/")));
+    matchedRoutes.map(o => console.error("#" + routes.indexOf(o) + "  /" + o.path.join("/")));
   }
 
-  const chosenRoute = options?.[0];
-  const comp = chosenRoute?.component;
+  const route = matchedRoutes[0];
+  if (!route?.component) return undefined;
 
-  const renderedNodeOrAPromise = useMemo(() => {
-    //console.log("Calling Comp()");
-    if (!comp) return undefined;
-    window.history.pushState("", "", "/" + current.join("/"));
+  const props: Record<string, string | number> = {};
+  for (let i = 0; i < current.length; i++) {
+    const routeSegment = route.path[i];
+    if (routeSegment.startsWith(":")) props[routeSegment.slice(1)] = current[i];
+  }
 
-    const props = current.reduce(
-      (sum, each, i) => {
-        const segment = chosenRoute.path[i];
-        const name = segment.startsWith(":") ? segment.slice(1) : undefined;
-        if (name) sum[name] = each;
-        return sum;
-      },
-      {} as Record<string, string | number>
-    );
-    return comp(props);
-  }, [comp]);
+  setBrowserUrl(path);
+  return route.component(props);
+}
 
-  const [component, setComponent] = useState<ReactNode | null>(null);
+/**
+ * Router
+ */
+export function Router({ routes, children: loading, unknown: unknownRoute }: PropsWithChildren<{ routes: Route[]; unknown?: JSX.Element }>) {
+  const cleanRoutes = useMemo<CleanRoute[]>(() => cleanTheRoutes(routes), []);
+
+  const [path, setPath] = useState(() => location.pathname);
+  const handler = useCallback((ev: NavEvent) => ev.to !== path && setPath(ev.to), []);
+  useMemo(() => {
+    detach(handler);
+    attach(handler);
+  }, []);
+
+  const promiseOrNode = useMemo(() => findMatchingComponent(cleanRoutes, path), [cleanRoutes, path]);
+
+  const [_, rerender] = useState<ReactNode | null>(null); // useRef gives me control of re-render
+  const resolvedComponent = useRef<ReactNode | null>(null);
 
   const synchronousFallback = useMemo(() => {
-    if (!renderedNodeOrAPromise) return component;
-    if (!(renderedNodeOrAPromise instanceof Promise)) {
-      //console.log("is component. setting and returning ");
-      setComponent(renderedNodeOrAPromise); // unnecessary?
-      return renderedNodeOrAPromise;
-    }
-    //console.log("Promise. returning Children and wait");
-    setComponent(null);
-    renderedNodeOrAPromise.then(setComponent);
-    // return component; // if you want the previous screen to stay put
-    return children;
-  }, [renderedNodeOrAPromise, component]);
+    if (!promiseOrNode) return unknownRoute;
+    const isPromise = promiseOrNode instanceof Promise;
+    if (isPromise) promiseOrNode.then(el => rerender((resolvedComponent.current = el)));
+    return (resolvedComponent.current = isPromise ? loading : promiseOrNode);
+  }, [promiseOrNode]);
 
-  return component ?? synchronousFallback ?? children;
+  return resolvedComponent.current ?? synchronousFallback;
 }
