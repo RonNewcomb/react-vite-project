@@ -79,12 +79,12 @@ export function App() {
       </div>
       <p className="read-the-docs">{"Click on the Vite and React logos to learn more"}</p>
       <div>
-        <button onClick={() => goto("/home")}>A</button>
+        <button onClick={() => goto("/home?arg=72")}>A</button>
         <button onClick={() => goto("/home/dash")}>B</button>
         <button onClick={() => goto("/home/dashboard")}>C</button>
         <button onClick={() => goto("/lazy")}>lazy D</button>
         <button onClick={() => goto("/invalid")}>invalid</button>
-        <button onClick={() => goto("parameters/42")}>With Param 42</button>
+        <button onClick={() => goto("parameters/42?arg=2")}>With Param 42</button>
         <button onClick={() => goto("parameters/5/foo")}>With Param 5 "foo"</button>
       </div>
       <Router routes={routes}>

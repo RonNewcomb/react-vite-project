@@ -16,16 +16,11 @@ interface CleanRoute {
 }
 
 // clean input
-const onlyTheCleanPath = (path: string) => new URL(path.replace(/\/\//g, "/"), "http://localhost").pathname.split("/").filter(x => !!x);
+const onlyTheCleanPath = (path: string) => new URL(path.replace(/\/\//g, "/"), location.origin).pathname.split("/").filter(x => !!x);
 
-// clean user input
+// clean user input // sort shortest path first
 const cleanTheRoutes = (routes: Route[]) =>
-  routes
-    .map<CleanRoute>(({ path, component }) => ({
-      component,
-      path: onlyTheCleanPath(path),
-    }))
-    .sort((a, b) => a.path.length - b.path.length); // shortest path first;
+  routes.map<CleanRoute>(({ path, component }) => ({ component, path: onlyTheCleanPath(path) })).sort((a, b) => a.path.length - b.path.length);
 
 /**
  * find matching component
@@ -50,7 +45,7 @@ function findMatchingComponent(routes: CleanRoute[], path: string): JSX.Element 
     if (routeSegment.startsWith(":")) props[routeSegment.slice(1)] = current[i];
   }
 
-  setBrowserUrl(path);
+  setBrowserUrl(new URL(path, location.origin));
   return route.component(props);
 }
 
@@ -60,14 +55,17 @@ function findMatchingComponent(routes: CleanRoute[], path: string): JSX.Element 
 export function Router({ routes, children: loading, unknown: unknownRoute }: PropsWithChildren<{ routes: Route[]; unknown?: JSX.Element }>) {
   const cleanRoutes = useMemo<CleanRoute[]>(() => cleanTheRoutes(routes), []);
 
-  const [path, setPath] = useState(() => location.pathname);
-  const handler = useCallback((ev: NavEvent) => ev.to !== path && setPath(ev.to), []);
+  const [promiseOrNode, setPromiseOrNode] = useState(() => findMatchingComponent(cleanRoutes, location.pathname));
+
+  const handler = useCallback((ev: NavEvent) => {
+    const component = findMatchingComponent(cleanRoutes, ev.to);
+    if (component) setPromiseOrNode(component);
+  }, []);
+
   useMemo(() => {
     detach(handler);
     attach(handler);
   }, []);
-
-  const promiseOrNode = useMemo(() => findMatchingComponent(cleanRoutes, path), [cleanRoutes, path]);
 
   const [_, rerender] = useState<ReactNode | null>(null); // useRef gives me control of re-render
   const resolvedComponent = useRef<ReactNode | null>(null);
