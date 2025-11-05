@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useRef, useState, type JSX, type PropsWithChildren, type ReactNode } from "react";
-import { attach, detach, NavEvent, setBrowserUrl } from "./goto-url";
 
 export interface ReactComponent {
   (props: any & object): JSX.Element | Promise<JSX.Element>;
@@ -7,7 +6,7 @@ export interface ReactComponent {
 
 export interface Route {
   path: string;
-  component: ReactComponent;
+  component: ReactComponent | { [Symbol.toStringTag]: "Module" };
 }
 
 interface CleanRoute {
@@ -15,8 +14,31 @@ interface CleanRoute {
   component: ReactComponent;
 }
 
+// goto URL /////
+export const NavEventType = "nav-event";
+
+export class NavEvent extends Event {
+  to: string = "";
+}
+
+const attach = (handler: (ev: NavEvent) => void) => document.body.addEventListener(NavEventType, handler as any);
+const detach = (handler: (ev: NavEvent) => void) => document.body.removeEventListener(NavEventType, handler as any);
+const setBrowserUrl = (url: string | URL, data?: any) => window.history.pushState(data, "", url);
+
+export async function goto(path: string) {
+  const event = new NavEvent(NavEventType);
+  event.to = path;
+  document.body.dispatchEvent(event);
+}
+
 // clean input
-const onlyTheCleanPath = (path: string) => new URL(path.replace(/\/\//g, "/"), location.origin).pathname.split("/").filter(x => !!x);
+const pathToUrl = (path: string) => new URL(path.replace(/\/\//g, "/"), location.origin);
+
+// clean input
+const onlyTheCleanPath = (path: string) =>
+  pathToUrl(path)
+    .pathname.split("/")
+    .filter(x => !!x);
 
 // clean user input // sort shortest path first
 const cleanTheRoutes = (routes: Route[]) =>
@@ -45,7 +67,7 @@ function findMatchingComponent(routes: CleanRoute[], path: string): JSX.Element 
     if (routeSegment.startsWith(":")) props[routeSegment.slice(1)] = current[i];
   }
 
-  setBrowserUrl(new URL(path, location.origin));
+  setBrowserUrl(pathToUrl(path));
   return route.component(props);
 }
 

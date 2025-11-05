@@ -4,13 +4,12 @@ import { B } from "./components/B";
 import { C } from "./components/C";
 import { Loading } from "./components/Loading";
 import { Params } from "./components/Params";
-import { goto } from "./services/goto-url";
 import "./services/router";
-import { type Route, Router } from "./services/router";
+import { goto, type Route, Router } from "./services/router";
 import reactLogo from "/assets/react.svg";
 import viteLogo from "/assets/vite.svg";
 
-const wait = (ms: number) => new Promise(r => setTimeout(r, ms || 1000));
+const wait = (ms?: number) => new Promise(r => setTimeout(r, ms || 1000));
 
 //////////////
 
@@ -25,14 +24,28 @@ const routes: Route[] = [
       return <C anything={x} />;
     },
   },
-  { path: "/lazy", component: () => import("./components/D").then(({ D }) => <D />) },
   {
-    path: "lazy2",
+    path: "/lazy",
     component: () =>
-      import("./components/D").then(module => {
+      wait()
+        .then(() => import("./components/D"))
+        .then(({ D }) => <D />),
+  },
+  {
+    path: "raw",
+    component: () =>
+      import("./components/D.tsx").then(module => {
         //console.log(module[Symbol.toStringTag], module[Symbol.toStringTag] === "Module");
-        return module["D"]();
+        return (module["D"] || module.default)();
       }),
+  },
+  {
+    path: "veryraw",
+    component: () => import("./components/D.tsx"),
+    //   .then(module => {
+    //   //console.log(module[Symbol.toStringTag], module[Symbol.toStringTag] === "Module");
+    //   return (module["D"] || module.default)();
+    // }),
   },
   { path: "parameters/:id", component: ({ id }) => <div>Params {id}</div> },
   // { path: "parameters/:id/:otherId", component: Params },
@@ -83,6 +96,7 @@ export function App() {
         <button onClick={() => goto("/home/dash")}>B</button>
         <button onClick={() => goto("/home/dashboard")}>C</button>
         <button onClick={() => goto("/lazy")}>lazy D</button>
+        <button onClick={() => goto("/raw")}>raw D</button>
         <button onClick={() => goto("/invalid")}>invalid</button>
         <button onClick={() => goto("parameters/42?arg=2")}>With Param 42</button>
         <button onClick={() => goto("parameters/5/foo")}>With Param 5 "foo"</button>
