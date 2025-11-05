@@ -25,28 +25,37 @@ const routes: Route[] = [
     },
   },
   {
-    path: "/lazy",
+    path: "/lazywait",
     component: () =>
       wait()
         .then(() => import("./components/D"))
         .then(({ D }) => <D />),
   },
   {
-    path: "raw",
-    component: () =>
-      import("./components/D.tsx").then(module => {
-        //console.log(module[Symbol.toStringTag], module[Symbol.toStringTag] === "Module");
-        return (module["D"] || module.default)();
-      }),
+    path: "/lazy",
+    component: props => import("./components/D").then(Module => <Module.default {...props} />),
   },
   {
-    path: "veryraw",
-    component: () => import("./components/D.tsx"),
-    //   .then(module => {
-    //   //console.log(module[Symbol.toStringTag], module[Symbol.toStringTag] === "Module");
-    //   return (module["D"] || module.default)();
-    // }),
+    path: "/lazy1",
+    component: () => import("./components/D").then(({ D }) => <D />),
   },
+  {
+    path: "/lazy2",
+    component: props => import("./components/D").then(Module => <Module.D {...props} />),
+  },
+  {
+    path: "default/:id",
+    component: props => import("./components/D").then(Module => <Module.default {...props} />),
+  },
+  {
+    path: "default2/:cid",
+    component: ({ cid }) => import("./components/D").then(Module => <Module.default id={cid} />),
+  },
+  {
+    path: "default3/:id",
+    component: ({ id }) => import("./components/D").then(({ default: D }) => <D id={id} />),
+  },
+
   { path: "parameters/:id", component: ({ id }) => <div>Params {id}</div> },
   // { path: "parameters/:id/:otherId", component: Params },
   { path: "parameters/:id/:otherId", component: props => <Params {...props} /> },
@@ -97,6 +106,7 @@ export function App() {
         <button onClick={() => goto("/home/dashboard")}>C</button>
         <button onClick={() => goto("/lazy")}>lazy D</button>
         <button onClick={() => goto("/raw")}>raw D</button>
+        <button onClick={() => goto("/default/47")}>D 47</button>
         <button onClick={() => goto("/invalid")}>invalid</button>
         <button onClick={() => goto("parameters/42?arg=2")}>With Param 42</button>
         <button onClick={() => goto("parameters/5/foo")}>With Param 5 "foo"</button>

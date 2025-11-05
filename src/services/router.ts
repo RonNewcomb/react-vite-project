@@ -6,7 +6,7 @@ export interface ReactComponent {
 
 export interface Route {
   path: string;
-  component: ReactComponent | { [Symbol.toStringTag]: "Module" };
+  component: ReactComponent;
 }
 
 interface CleanRoute {
@@ -15,21 +15,18 @@ interface CleanRoute {
 }
 
 // goto URL /////
-export const NavEventType = "nav-event";
 
 export class NavEvent extends Event {
-  to: string = "";
+  static Type = "nav-event";
+  static Target = document.body;
+  to: string;
+  constructor(to: string) {
+    super(NavEvent.Type);
+    this.to = to;
+  }
 }
 
-const attach = (handler: (ev: NavEvent) => void) => document.body.addEventListener(NavEventType, handler as any);
-const detach = (handler: (ev: NavEvent) => void) => document.body.removeEventListener(NavEventType, handler as any);
-const setBrowserUrl = (url: string | URL, data?: any) => window.history.pushState(data, "", url);
-
-export async function goto(path: string) {
-  const event = new NavEvent(NavEventType);
-  event.to = path;
-  document.body.dispatchEvent(event);
-}
+export const goto = (path: string) => NavEvent.Target.dispatchEvent(new NavEvent(path));
 
 // clean input
 const pathToUrl = (path: string) => new URL(path.replace(/\/\//g, "/"), location.origin);
@@ -67,7 +64,7 @@ function findMatchingComponent(routes: CleanRoute[], path: string): JSX.Element 
     if (routeSegment.startsWith(":")) props[routeSegment.slice(1)] = current[i];
   }
 
-  setBrowserUrl(pathToUrl(path));
+  window.history.pushState(undefined, "", pathToUrl(path)); // setBrowserUrl
   return route.component(props);
 }
 
@@ -79,14 +76,14 @@ export function Router({ routes, children: loading, unknown: unknownRoute }: Pro
 
   const [promiseOrNode, setPromiseOrNode] = useState(() => findMatchingComponent(cleanRoutes, location.pathname));
 
-  const handler = useCallback((ev: NavEvent) => {
+  const handler = useCallback<any>((ev: NavEvent) => {
     const component = findMatchingComponent(cleanRoutes, ev.to);
     if (component) setPromiseOrNode(component);
   }, []);
 
   useMemo(() => {
-    detach(handler);
-    attach(handler);
+    NavEvent.Target.removeEventListener(NavEvent.Type, handler);
+    NavEvent.Target.addEventListener(NavEvent.Type, handler);
   }, []);
 
   const [_, rerender] = useState<ReactNode | null>(null); // useRef gives me control of re-render
