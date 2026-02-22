@@ -1,6 +1,6 @@
 export function Params({ id, otherId }: { id: number; otherId: string }) {
   return (
-    <div>
+    <div data-testid="Params">
       <div>Params readout</div>
       <div>
         id: {id} {typeof id}

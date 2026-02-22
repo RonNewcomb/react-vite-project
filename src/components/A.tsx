@@ -1,3 +1,3 @@
 export function A() {
-  return <div>A {location.search}</div>;
+  return <div data-testid="A">A {location.search}</div>;
 }

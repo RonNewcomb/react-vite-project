@@ -6,8 +6,6 @@ import { Loading } from "./components/Loading";
 import { Params } from "./components/Params";
 import "./services/router";
 import { goto, type Route, Router } from "./services/router";
-import reactLogo from "/assets/react.svg";
-import viteLogo from "/assets/vite.svg";
 
 const wait = (ms?: number) => new Promise(r => setTimeout(r, ms || 1000));
 
@@ -85,21 +83,7 @@ const routes: Route[] = [
 export function App() {
   return (
     <main className="centeredcolumn">
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">{"Click on the Vite and React logos to learn more"}</p>
+      <p className="read-the-docs">Read the docs</p>
       <div>
         <button onClick={() => goto("/home?arg=72")}>A</button>
         <button onClick={() => goto("/home/dash")}>B</button>
@@ -111,9 +95,7 @@ export function App() {
         <button onClick={() => goto("parameters/42?arg=2")}>With Param 42</button>
         <button onClick={() => goto("parameters/5/foo")}>With Param 5 "foo"</button>
       </div>
-      <Router routes={routes}>
-        <Loading />
-      </Router>
+      <Router routes={routes} loading={<Loading />} />
     </main>
   );
 }

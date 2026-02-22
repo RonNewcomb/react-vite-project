@@ -1,3 +1,3 @@
 export function B() {
-  return <div>B</div>;
+  return <div data-testid="B">B</div>;
 }
