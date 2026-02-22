@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useRef, useState, type JSX } from "react";
+import { ReactNode, useMemo, useState, type JSX } from "react";
 
 export interface ReactComponent {
   (props: any & object): JSX.Element | Promise<JSX.Element>;
@@ -31,11 +31,11 @@ export class NavEvent extends Event {
 
 export const goto = (path: string) => NavEvent.Target.dispatchEvent(new NavEvent(path));
 
-export function useGlobalNavigationEvent(handler: (evt: NavEvent) => void, depArray: any[]) {
+export function useGlobalNavigationEventHandler(handler: (evt: NavEvent) => void, depArray: any[] = []) {
   useMemo(() => {
     NavEvent.Target.removeEventListener(NavEvent.Type, handler as EventListener);
     NavEvent.Target.addEventListener(NavEvent.Type, handler as EventListener);
-  }, depArray || []);
+  }, depArray);
 }
 
 // clean utils /////////
@@ -71,16 +71,6 @@ function findComponent(routes: CleanRoute[], path: string): JSX.Element | Promis
   return route.component(props); // lazy loading will be a promise; cache on resolve to make synchronous?
 }
 
-/**
- * like useState with 3rd option for a setSilent
- * @returns [current value, set-and-rerender, set-without-rerender]
- */
-export function useStateSilently<T>(init: T): [T, (node: T) => void, (n: T) => T] {
-  const [_, rerender] = useState<T>(init);
-  const container = useRef<T>(init);
-  return [container.current, (n: T) => rerender((container.current = n)), (n: T) => (container.current = n)];
-}
-
 // Router ////////
 
 export interface RouterProps {
@@ -94,17 +84,14 @@ export function Router({ routes, loading, unknown: unknownRoute }: RouterProps):
 
   const [promiseOrNode, setPromiseOrNode] = useState(() => findComponent(cachedCleanRoutes, location.pathname));
 
-  useGlobalNavigationEvent(ev => setPromiseOrNode(old => findComponent(cachedCleanRoutes, ev.to) || old), [routes]);
+  useGlobalNavigationEventHandler(ev => setPromiseOrNode(old => findComponent(cachedCleanRoutes, ev.to) || old), [routes]);
 
-  const [node, setNode, setNodeSilently] = useStateSilently<ReactNode | null>(null);
+  const [node, setNode] = useState<ReactNode | null>(null);
 
-  const synchronousFallback = useMemo(() => {
-    // console.log("promiseOrNode is", promiseOrNode);
+  useMemo(() => {
     if (promiseOrNode instanceof Promise) promiseOrNode.then(setNode);
-    const n = !promiseOrNode ? unknownRoute : promiseOrNode instanceof Promise ? loading : promiseOrNode;
-    setNode(n);
-    return n;
+    setNode(promiseOrNode instanceof Promise ? loading : promiseOrNode ? promiseOrNode : unknownRoute);
   }, [promiseOrNode]);
 
-  return node ?? synchronousFallback;
+  return node;
 }
