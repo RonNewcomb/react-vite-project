@@ -1,4 +1,4 @@
-import { Dispatch, ReactNode, SetStateAction, useMemo, useState, type JSX } from "react";
+import { useMemo, useRef, useState, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
 
 export interface ReactComponent {
   (props: any & object): JSX.Element | Promise<JSX.Element>;
@@ -18,23 +18,26 @@ interface CleanRoute extends Route {
 
 // goto URL /////
 
-export class NavEvent extends Event {
-  static Type = "nav-event";
+export class RouterEvent extends Event {
+  static Type = "router-event";
+  /** for microfrontends, change this to the micro's root node */
   static Target = document.body;
   to: string;
   constructor(to: string) {
-    super(NavEvent.Type);
+    super(RouterEvent.Type);
     this.to = to;
     // console.log("Going to ", to);
   }
 }
 
-export const goto = (path: string) => NavEvent.Target.dispatchEvent(new NavEvent(path));
+export const goto = (path: string) => RouterEvent.Target.dispatchEvent(new RouterEvent(path));
 
-export function useGlobalNavigationEventHandler(handler: (evt: NavEvent) => void, depArray: any[] = []) {
+export function useRouterEventHandler(handler: (evt: RouterEvent) => void, depArray: any[] = []) {
+  const previous = useRef<EventListener | undefined>(void 0);
   useMemo(() => {
-    NavEvent.Target.removeEventListener(NavEvent.Type, handler as EventListener);
-    NavEvent.Target.addEventListener(NavEvent.Type, handler as EventListener);
+    if (previous.current) RouterEvent.Target.removeEventListener(RouterEvent.Type, previous.current);
+    previous.current = handler as EventListener;
+    RouterEvent.Target.addEventListener(RouterEvent.Type, previous.current);
   }, depArray);
 }
 
@@ -67,7 +70,7 @@ function findComponent(routes: CleanRoute[], path: string, setNode: Dispatch<Set
     if (routeSegment.startsWith(":")) props[routeSegment.slice(1)] = dest[i];
   }
 
-  window.history.pushState(undefined, "", pathToUrl(path)); // setBrowserUrl
+  window.history.pushState(void 0, "", pathToUrl(path)); // setBrowserUrl
 
   const promiseOrNode = route.component(props); // lazy loading will be a promise; cache on resolve to make synchronous?
   if (promiseOrNode instanceof Promise) promiseOrNode.then(setNode);
@@ -86,8 +89,8 @@ export interface RouterProps {
 }
 
 export function Router(props: RouterProps): ReactNode {
-  const cachedCleanRoutes = useMemo(() => props.routes.map<CleanRoute>(r => ({ ...r, segments: onlyTheCleanPath(r.path) })), [props.routes]);
-  const [node, setNode] = useState<ReactNode>(() => findComponent(cachedCleanRoutes, location.pathname, () => null, props));
-  useGlobalNavigationEventHandler(ev => findComponent(cachedCleanRoutes, ev.to, setNode, props), [cachedCleanRoutes]);
+  const cleanRoutes = useMemo(() => props.routes.map<CleanRoute>(r => ({ ...r, segments: onlyTheCleanPath(r.path) })), [props.routes]);
+  const [node, setNode] = useState<ReactNode>(() => findComponent(cleanRoutes, location.pathname, () => null, props));
+  useRouterEventHandler(ev => findComponent(cleanRoutes, ev.to, setNode, props), [cleanRoutes]);
   return node;
 }
