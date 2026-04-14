@@ -52,7 +52,7 @@ const onlyTheCleanPath = (path: string) =>
 
 // find matching component //////
 
-function findComponent(routes: CleanRoute[], path: string, setNode: Dispatch<SetStateAction<ReactNode>>, config: RouterProps): ReactNode {
+function findComponent(routes: CleanRoute[], path: string, setNode: Dispatch<SetStateAction<ReactNode>>, config: RouterConfig): ReactNode {
   const dest = onlyTheCleanPath(path);
 
   const matchedRoutes = routes.filter(r => dest.length == r.segments.length && dest.every((c, i) => c == r.segments[i] || r.segments[i].startsWith(":")));
@@ -82,15 +82,15 @@ function findComponent(routes: CleanRoute[], path: string, setNode: Dispatch<Set
 
 // Router ////////
 
-export interface RouterProps {
+export interface RouterConfig {
   routes: Route[];
   unknown?: JSX.Element;
   loading?: JSX.Element;
 }
 
-export function Router(props: RouterProps): ReactNode {
-  const cleanRoutes = useMemo(() => props.routes.map<CleanRoute>(r => ({ ...r, segments: onlyTheCleanPath(r.path) })), [props.routes]);
-  const [node, setNode] = useState<ReactNode>(() => findComponent(cleanRoutes, location.pathname, () => null, props));
-  useRouterEventHandler(ev => findComponent(cleanRoutes, ev.to, setNode, props), [cleanRoutes]);
+export function Router(config: RouterConfig): ReactNode {
+  const cleanRoutes = useMemo(() => config.routes.map<CleanRoute>(r => ({ ...r, segments: onlyTheCleanPath(r.path) })), [config.routes]);
+  const [node, setNode] = useState<ReactNode>(() => findComponent(cleanRoutes, location.pathname, () => null, config));
+  useRouterEventHandler(ev => findComponent(cleanRoutes, ev.to, setNode, config), [cleanRoutes]);
   return node;
 }
