@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState, type JSX } from "react";
+import { Dispatch, ReactNode, SetStateAction, useMemo, useState, type JSX } from "react";
 
 export interface ReactComponent {
   (props: any & object): JSX.Element | Promise<JSX.Element>;
@@ -49,26 +49,32 @@ const onlyTheCleanPath = (path: string) =>
 
 // find matching component //////
 
-function findComponent(routes: CleanRoute[], path: string): JSX.Element | Promise<JSX.Element> | undefined {
-  const current = onlyTheCleanPath(path);
+function findComponent(routes: CleanRoute[], path: string, setNode: Dispatch<SetStateAction<ReactNode>>, config: RouterProps): ReactNode {
+  const dest = onlyTheCleanPath(path);
 
-  const matchedRoutes = routes.filter(r => current.length == r.segments.length && current.every((c, i) => c == r.segments[i] || r.segments[i].startsWith(":")));
+  const matchedRoutes = routes.filter(r => dest.length == r.segments.length && dest.every((c, i) => c == r.segments[i] || r.segments[i].startsWith(":")));
   if (matchedRoutes.length !== 1) {
-    console.error(matchedRoutes.length ? "Multiple" : "No", "route definitions for /" + current.join("/"));
+    console.error(matchedRoutes.length ? "Multiple" : "No", "route definitions for /" + dest.join("/"));
     matchedRoutes.map(o => console.error("#" + routes.indexOf(o) + "  /" + o.segments.join("/")));
   }
 
   const route = matchedRoutes[0];
-  if (!route?.component) return undefined;
+  if (!route?.component) return `No component for route ${route}`;
 
   const props: Record<string, string | number> = {};
-  for (let i = 0; i < current.length; i++) {
+  for (let i = 0; i < dest.length; i++) {
     const routeSegment = route.segments[i];
-    if (routeSegment.startsWith(":")) props[routeSegment.slice(1)] = current[i];
+    if (routeSegment.startsWith(":")) props[routeSegment.slice(1)] = dest[i];
   }
 
   window.history.pushState(undefined, "", pathToUrl(path)); // setBrowserUrl
-  return route.component(props); // lazy loading will be a promise; cache on resolve to make synchronous?
+
+  const promiseOrNode = route.component(props); // lazy loading will be a promise; cache on resolve to make synchronous?
+  if (promiseOrNode instanceof Promise) promiseOrNode.then(setNode);
+
+  const displayNode = promiseOrNode instanceof Promise ? config.loading : promiseOrNode ? promiseOrNode : config.unknown;
+  setNode(displayNode);
+  return displayNode;
 }
 
 // Router ////////
@@ -79,19 +85,9 @@ export interface RouterProps {
   loading?: JSX.Element;
 }
 
-export function Router({ routes, loading, unknown: unknownRoute }: RouterProps): ReactNode {
-  const cachedCleanRoutes = useMemo(() => routes.map<CleanRoute>(r => ({ ...r, segments: onlyTheCleanPath(r.path) })), [routes]);
-
-  const [promiseOrNode, setPromiseOrNode] = useState(() => findComponent(cachedCleanRoutes, location.pathname));
-
-  useGlobalNavigationEventHandler(ev => setPromiseOrNode(old => findComponent(cachedCleanRoutes, ev.to) || old), [routes]);
-
-  const [node, setNode] = useState<ReactNode | null>(null);
-
-  useMemo(() => {
-    if (promiseOrNode instanceof Promise) promiseOrNode.then(setNode);
-    setNode(promiseOrNode instanceof Promise ? loading : promiseOrNode ? promiseOrNode : unknownRoute);
-  }, [promiseOrNode]);
-
+export function Router(props: RouterProps): ReactNode {
+  const cachedCleanRoutes = useMemo(() => props.routes.map<CleanRoute>(r => ({ ...r, segments: onlyTheCleanPath(r.path) })), [props.routes]);
+  const [node, setNode] = useState<ReactNode>(() => findComponent(cachedCleanRoutes, location.pathname, () => null, props));
+  useGlobalNavigationEventHandler(ev => findComponent(cachedCleanRoutes, ev.to, setNode, props), [cachedCleanRoutes]);
   return node;
 }
