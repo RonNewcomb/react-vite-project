@@ -2,6 +2,7 @@ import "./App.css";
 import { A } from "./components/A";
 import { B } from "./components/B";
 import { C } from "./components/C";
+import { E } from "./components/E";
 import { Loading } from "./components/Loading";
 import { Params } from "./components/Params";
 import "./services/router";
@@ -14,49 +15,73 @@ const wait = (ms?: number) => new Promise(r => setTimeout(r, ms || 1000));
 const routes: Route[] = [
   { path: "/", component: () => <div>Hello!</div> },
   { path: "home", component: () => <A /> },
+  { path: "home/:id", component: props => <E id={props.id} /> },
   { path: "home/dash", component: B },
   {
     path: "home/dashboard",
-    component: async () => {
-      const x = await wait(2000);
-      return <C anything={x} />;
+    loadComponent: async () => {
+      await wait(2000);
+      return C;
     },
   },
   {
     path: "/lazywait",
-    component: () =>
+    loadComponent: () =>
       wait()
         .then(() => import("./components/D"))
-        .then(({ D }) => <D />),
+        .then(({ D }) => D),
   },
   {
     path: "/lazy",
-    component: props => import("./components/D").then(Module => <Module.default {...props} />),
+    loadComponent: () => import("./components/D").then(Module => Module.default),
   },
   {
     path: "/lazy1",
-    component: () => import("./components/D").then(({ D }) => <D />),
+    loadComponent: () => import("./components/D").then(({ D }) => D),
   },
   {
     path: "/lazy2",
-    component: props => import("./components/D").then(Module => <Module.D {...props} />),
+    loadComponent: () => import("./components/D").then(Module => Module.D),
+  },
+  {
+    path: "/duplicate",
+    component: () => "Dup screen",
+  },
+  {
+    path: "/duplicate",
+    component: _props => "Dup screen",
   },
   {
     path: "default/:id",
-    component: props => import("./components/D").then(Module => <Module.default {...props} />),
+    loadComponent: () => import("./components/D").then(Module => Module.default),
   },
   {
     path: "default2/:cid",
-    component: ({ cid }) => import("./components/D").then(Module => <Module.default id={cid} />),
+    loadComponent: () => import("./components/D").then(Module => Module.default),
   },
   {
     path: "default3/:id",
-    component: ({ id }) => import("./components/D").then(({ default: D }) => <D id={id} />),
+    loadComponent: () => import("./components/D").then(({ default: D }) => D),
+  },
+
+  {
+    path: "skeleton/:id",
+    skeleton: () => "Alternate loading animation",
+    loadComponent: () => import("./components/D").then(({ default: D }) => D),
   },
 
   { path: "parameters/:id", component: ({ id }) => <div>Params {id}</div> },
   // { path: "parameters/:id/:otherId", component: Params },
   { path: "parameters/:id/:otherId", component: props => <Params {...props} /> },
+
+  {
+    path: "module-d",
+    loadComponent: () => import("./components/D"),
+  },
+  {
+    path: "module-c",
+    loadComponent: () => import("./components/C"),
+  },
 
   {
     path: "customer",
@@ -67,9 +92,9 @@ const routes: Route[] = [
           { path: ":id", component: ({ id }) => <div>Customer #{id}</div> },
           {
             path: "list",
-            component: async () => {
-              const x = await wait(2000);
-              return <C anything={x} />;
+            loadComponent: async () => {
+              await wait(2000);
+              return C;
             },
           },
         ]}
@@ -88,14 +113,18 @@ export function App() {
         <button onClick={() => goto("/home?arg=72")}>A</button>
         <button onClick={() => goto("/home/dash")}>B</button>
         <button onClick={() => goto("/home/dashboard")}>C</button>
+        <button onClick={() => goto("/home/87")}>E id</button>
         <button onClick={() => goto("/lazy")}>lazy D</button>
-        <button onClick={() => goto("/raw")}>raw D</button>
         <button onClick={() => goto("/default/47")}>D 47</button>
+        <button onClick={() => goto("/skeleton/" + +new Date())}>Alternate Spinner</button>
         <button onClick={() => goto("/invalid")}>invalid</button>
+        <button onClick={() => goto("/duplicate")}>duplicate</button>
         <button onClick={() => goto("parameters/42?arg=2")}>With Param 42</button>
         <button onClick={() => goto("parameters/5/foo")}>With Param 5 "foo"</button>
+        <button onClick={() => goto("/module-d")}>module autoexport D</button>
+        <button onClick={() => goto("/module-c")}>module autoexport C</button>
       </div>
-      <Router routes={routes} loading={<Loading />} />
+      <Router routes={routes} loading={Loading} />
     </main>
   );
 }
