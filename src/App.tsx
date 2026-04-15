@@ -15,7 +15,7 @@ const wait = (ms?: number) => new Promise(r => setTimeout(r, ms || 1000));
 const routes: Route[] = [
   { path: "/", component: () => <div>Hello!</div> },
   { path: "home", component: () => <A /> },
-  { path: "home/:id", component: props => <E id={props.id} /> },
+  { path: "props/:id", component: props => <E id={props.id} /> },
   { path: "home/dash", component: B },
   {
     path: "home/dashboard",
@@ -113,7 +113,7 @@ export function App() {
         <button onClick={() => goto("/home?arg=72")}>A</button>
         <button onClick={() => goto("/home/dash")}>B</button>
         <button onClick={() => goto("/home/dashboard")}>C</button>
-        <button onClick={() => goto("/home/87")}>E id</button>
+        <button onClick={() => goto("/props/87")}>E id</button>
         <button onClick={() => goto("/lazy")}>lazy D</button>
         <button onClick={() => goto("/default/47")}>D 47</button>
         <button onClick={() => goto("/skeleton/" + +new Date())}>Alternate Spinner</button>

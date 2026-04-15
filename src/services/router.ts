@@ -96,6 +96,7 @@ function findComponent(routes: CleanRoute[], config: RouterConfig, setNode?: Dis
       componentOrModule[Symbol.toStringTag] === "Module"
         ? componentOrModule.default || (() => `${err}Route /${route.path} does not choose which export is the component nor is there a default export`)
         : componentOrModule;
+    if (location.pathname !== pathToUrl(path).pathname) return; // prevent stale if nav'ed again beore promise finished
     goto(path, ev?.data); // can't use setJsx on initial useState
   });
 
