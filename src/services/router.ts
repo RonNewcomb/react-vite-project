@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
 
+export type ReactComponentProps = Record<string, string> & any;
+
 export interface ReactComponent {
-  (props?: object & any): JSX.Element | ReactNode;
+  (props?: ReactComponentProps): JSX.Element | ReactNode;
 }
 
 interface ImportModule extends Object {
@@ -13,11 +15,13 @@ export interface Route {
   path: string;
   /** skeletons slightly differ from loading spinners because each are tailored to match the screen they're loading into */
   skeleton?: ReactComponent | ReactNode;
-  //if?: () => boolean;
+  /** if a boolean function is provided, and returns falsy, route change will be prevented and .else called if provided. Some data is provided for convenience */
+  if?: (props: ReactComponentProps, gotoPath: string) => boolean;
+  /** only called if .if was provided and returned falsy. If something displayable was returned it will be displayed. or, goto() call is recommended */
+  else?: (props: ReactComponentProps, gotoPath: string) => ReactNode | undefined | void;
   loadComponent?: () => Promise<ReactComponent | ImportModule>;
   component?: ReactComponent;
-  loadData?: () => any;
-  //else?: ReactComponent;
+  loadData?: () => Promise<ReactComponentProps>;
 }
 
 interface CleanRoute extends Route {
@@ -36,9 +40,8 @@ export class RouterEvent extends Event {
   data?: any;
   constructor(to: string, data?: any) {
     super(RouterEvent.Type);
-    this.to = to;
+    this.to = (to ?? "/").toString();
     this.data = data;
-    // console.log("Going to ", to);
   }
 }
 
@@ -87,7 +90,24 @@ function findComponent(routes: CleanRoute[], config: RouterConfig, setNode?: Dis
     if (routeSegment.startsWith(":")) props[routeSegment.slice(1)] = dest[i];
   }
 
+  if (typeof route.if === "function" && !route.if(props, path)) {
+    const elseFn = typeof route.else === "function" ? route.else : typeof config.else === "function" ? config.else : undefined;
+    if (elseFn) {
+      const retval = elseFn(props, path);
+      if (retval && ["string", "object"].includes(typeof retval)) return setJsx(retval);
+    }
+    return;
+  }
+
+  // Setup is done. Go. //
+
   window.history.pushState(void 0, "", pathToUrl(path)); // setBrowserUrl
+
+  // if (route.loadData) {
+  //   route.loadData().then(asyncProps => {
+  //     setJsx(route.component({ ...props, ...asyncProps }));
+  //   });
+  // }
 
   if (route.component) return setJsx(route.component(props));
 
@@ -110,6 +130,7 @@ function findComponent(routes: CleanRoute[], config: RouterConfig, setNode?: Dis
 export interface RouterConfig {
   routes: Route[];
   loading?: ReactComponent | ReactNode;
+  else?: ReactComponent | ReactNode;
 }
 
 export function Router(config: RouterConfig): ReactNode {

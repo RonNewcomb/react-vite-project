@@ -84,6 +84,28 @@ const routes: Route[] = [
   },
 
   {
+    path: "maybe/:id",
+    if: () => false,
+    else: (props, path) => (
+      <div>
+        {path} with {props ? JSON.stringify(props) : ""} is under construction
+      </div>
+    ),
+    component: B,
+  },
+  {
+    path: "if",
+    if: () => false,
+    component: B,
+  },
+  {
+    path: "badrole",
+    if: () => false,
+    else: () => goto("/"),
+    component: B,
+  },
+
+  {
     path: "customer",
     component: () => (
       <Router
@@ -123,8 +145,11 @@ export function App() {
         <button onClick={() => goto("parameters/5/foo")}>With Param 5 "foo"</button>
         <button onClick={() => goto("/module-d")}>module autoexport D</button>
         <button onClick={() => goto("/module-c")}>module autoexport C</button>
+        <button onClick={() => goto("/maybe/69")}>if else</button>
+        <button onClick={() => goto("/if")}>if</button>
+        <button onClick={() => goto("/badrole")}>bad role: redirect in else</button>
       </div>
-      <Router routes={routes} loading={Loading} />
+      <Router routes={routes} loading={Loading} else={() => "Route not allowed"} />
     </main>
   );
 }
