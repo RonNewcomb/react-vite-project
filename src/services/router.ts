@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState, type Dispatch, type JSX, type ReactNode, type SetStateAction } from "react";
+import { useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 
-export type ReactComponentProps = Record<string, string> & any;
+export type ReactComponentProps = Record<string, any> & any;
+export type UrlParamProps = Record<string, string>;
 
 export interface ReactComponent {
-  (props?: ReactComponentProps): JSX.Element | ReactNode;
+  (props: ReactComponentProps): ReactNode;
 }
 
 interface ImportModule extends Object {
@@ -21,7 +22,7 @@ export interface Route {
   else?: (props: ReactComponentProps, gotoPath: string) => ReactNode | undefined | void;
   loadComponent?: () => Promise<ReactComponent | ImportModule>;
   component?: ReactComponent;
-  loadData?: () => Promise<ReactComponentProps>;
+  loadData?: (props: ReactComponentProps) => ReactComponentProps | Promise<ReactComponentProps>;
 }
 
 interface CleanRoute extends Route {
@@ -65,6 +66,12 @@ const onlyTheCleanPath = (path: string) =>
     .pathname.split("/")
     .filter(x => !!x);
 
+const mergeProps = (asyncProps: any, props: ReactComponentProps, path: string) => {
+  if (!asyncProps) return;
+  else if (typeof asyncProps === "object") Object.assign(props, asyncProps);
+  else if (!!asyncProps) console.error(`${err}loadData of route /${path} did not return an object`);
+};
+
 // find matching component //////
 
 function findComponent(routes: CleanRoute[], config: RouterConfig, setNode?: Dispatch<SetStateAction<ReactNode>>, ev?: RouterEvent): ReactNode {
@@ -103,25 +110,30 @@ function findComponent(routes: CleanRoute[], config: RouterConfig, setNode?: Dis
 
   window.history.pushState(void 0, "", pathToUrl(path)); // setBrowserUrl
 
-  // if (route.loadData) {
-  //   route.loadData().then(asyncProps => {
-  //     setJsx(route.component({ ...props, ...asyncProps }));
-  //   });
-  // }
+  const gathering = route.loadData?.(props);
+  if (!!gathering) {
+    if (gathering instanceof Promise) gathering.then(asyncProps => mergeProps(asyncProps, props, route.path));
+    else mergeProps(gathering, props, route.path);
+  }
 
-  if (route.component) return setJsx(route.component(props));
+  if (route.component && !(gathering instanceof Promise)) return setJsx(route.component(props));
 
-  route.loadComponent?.().then((componentOrModule: any) => {
-    route.component =
-      componentOrModule[Symbol.toStringTag] === "Module"
-        ? componentOrModule.default || (() => `${err}Route /${route.path} does not choose which export is the component nor is there a default export`)
-        : componentOrModule;
+  const importing = route.component
+    ? undefined
+    : route.loadComponent!().then((componentOrModule: any) => {
+        route.component =
+          componentOrModule[Symbol.toStringTag] === "Module"
+            ? componentOrModule.default || (() => `${err}Route /${route.path} does not choose which export is the component nor is there a default export`)
+            : componentOrModule;
+      });
+
+  Promise.allSettled([gathering, importing]).then(() => {
     if (location.pathname !== pathToUrl(path).pathname) return; // prevent stale if nav'ed again beore promise finished
-    goto(path, ev?.data); // can't use setJsx on initial useState
+    setNode ? setJsx(route.component!(props)) : goto(path, ev?.data); // can't use setJsx on initial useState
   });
 
-  if (typeof route.skeleton !== "undefined") return setJsx(typeof route.skeleton === "function" ? route.skeleton() : route.skeleton);
-  if (typeof config.loading !== "undefined") return setJsx(typeof config.loading === "function" ? config.loading() : config.loading);
+  const skeleton = route.skeleton ?? config.loading;
+  if (typeof skeleton !== "undefined") return setJsx(typeof skeleton === "function" ? skeleton(props) : skeleton);
   return void 0; // don't change existing display with setJsx
 }
 

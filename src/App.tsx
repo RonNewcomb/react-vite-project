@@ -3,6 +3,7 @@ import { A } from "./components/A";
 import { B } from "./components/B";
 import { C } from "./components/C";
 import { E } from "./components/E";
+import { F } from "./components/F";
 import { Loading } from "./components/Loading";
 import { Params } from "./components/Params";
 import "./services/router";
@@ -72,7 +73,7 @@ const routes: Route[] = [
 
   { path: "parameters/:id", component: ({ id }) => <div>Params {id}</div> },
   // { path: "parameters/:id/:otherId", component: Params },
-  { path: "parameters/:id/:otherId", component: props => <Params {...props} /> },
+  { path: "parameters/:id/:otherId", component: props => <Params id={0} otherId={""} {...props} /> },
 
   {
     path: "module-d",
@@ -103,6 +104,16 @@ const routes: Route[] = [
     if: () => false,
     else: () => goto("/"),
     component: B,
+  },
+
+  {
+    path: "loaddata/:orderId",
+    component: F,
+    loadData: props =>
+      fetch(`/invoices/${props.orderId}`)
+        .then(r => r.text())
+        .catch(() => [{ invoiceId: 3856 }, { invoiceId: 7387 }])
+        .then(res => ({ invoices: res })),
   },
 
   {
@@ -148,6 +159,7 @@ export function App() {
         <button onClick={() => goto("/maybe/69")}>if else</button>
         <button onClick={() => goto("/if")}>if</button>
         <button onClick={() => goto("/badrole")}>bad role: redirect in else</button>
+        <button onClick={() => goto("/loaddata/5686")}>loaddata</button>
       </div>
       <Router routes={routes} loading={Loading} else={() => "Route not allowed"} />
     </main>
