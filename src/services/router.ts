@@ -31,9 +31,14 @@ interface CleanRoute extends Route {
 
 const err = "[route config] ";
 
+interface RouterEventPayload {
+  to: string;
+  data?: any;
+}
+
 // goto URL /////
 
-export class RouterEvent extends Event {
+export class RouterEvent extends Event implements RouterEventPayload {
   static Type = "router-event";
   /** for microfrontends, change this to the micro's root node */
   static Target = document.body;
@@ -47,15 +52,6 @@ export class RouterEvent extends Event {
 }
 
 export const goto = (path: string, data?: any) => RouterEvent.Target.dispatchEvent(new RouterEvent(path, data));
-
-function useRouterEventHandler(handler: (evt: RouterEvent) => void, depArray: any[] = []) {
-  const previous = useRef<EventListener | undefined>(void 0);
-  useMemo(() => {
-    if (previous.current) RouterEvent.Target.removeEventListener(RouterEvent.Type, previous.current);
-    previous.current = handler as EventListener;
-    RouterEvent.Target.addEventListener(RouterEvent.Type, previous.current);
-  }, depArray);
-}
 
 // clean utils /////////
 
@@ -74,13 +70,8 @@ const mergeProps = (asyncProps: any, props: ReactComponentProps, path: string) =
 
 // find matching component //////
 
-function findComponent(routes: CleanRoute[], config: RouterConfig, setNode?: Dispatch<SetStateAction<ReactNode>>, ev?: RouterEvent): ReactNode {
-  const setJsx = (anythingReactCanDisplay: ReactNode) => {
-    setNode?.(anythingReactCanDisplay);
-    return anythingReactCanDisplay;
-  };
-
-  const path = ev?.to || location.pathname;
+function findComponent(routes: CleanRoute[], config: RouterConfig, setJsx: Dispatch<SetStateAction<ReactNode>>, ev: RouterEventPayload) {
+  const path = ev?.to;
   const dest = onlyTheCleanPath(path);
 
   const matchedRoutes = routes.filter(r => dest.length == r.segments.length && dest.every((c, i) => c == r.segments[i] || r.segments[i].startsWith(":")));
@@ -128,8 +119,8 @@ function findComponent(routes: CleanRoute[], config: RouterConfig, setNode?: Dis
       });
 
   Promise.allSettled([gathering, importing]).then(() => {
-    if (location.pathname !== pathToUrl(path).pathname) return; // prevent stale if nav'ed again beore promise finished
-    setNode ? setJsx(route.component!(props)) : goto(path, ev?.data); // can't use setJsx on initial useState
+    // prevent stale if nav'ed again beore promise finished
+    if (location.pathname === pathToUrl(path).pathname) setJsx(route.component!(props));
   });
 
   const skeleton = route.skeleton ?? config.loading;
@@ -147,7 +138,16 @@ export interface RouterConfig {
 
 export function Router(config: RouterConfig): ReactNode {
   const cleanRoutes = useMemo(() => config.routes.map<CleanRoute>(r => ({ ...r, segments: onlyTheCleanPath(r.path) })), [config.routes]);
-  const [jsx, setJsx] = useState(() => findComponent(cleanRoutes, config));
-  useRouterEventHandler(ev => findComponent(cleanRoutes, config, setJsx, ev), [cleanRoutes]);
+  const [jsx, setJsx] = useState<ReactNode>("");
+
+  const previous = useRef<EventListener>(_ => _);
+  useMemo(() => {
+    RouterEvent.Target.removeEventListener(RouterEvent.Type, previous.current);
+    previous.current = ev => findComponent(cleanRoutes, config, setJsx, ev as RouterEvent);
+    RouterEvent.Target.addEventListener(RouterEvent.Type, previous.current);
+  }, [cleanRoutes]);
+
+  useMemo(() => findComponent(cleanRoutes, config, setJsx, { to: location.pathname }), []); // initialize
+
   return jsx;
 }
